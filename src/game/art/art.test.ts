@@ -1,0 +1,80 @@
+import { describe, expect, it } from 'vitest'
+import { TileType } from '../map/tile.ts'
+import { WorldMap } from '../map/WorldMap.ts'
+import {
+  TILE_ART_SIZE,
+  TILE_ATLAS_ORDER,
+  TILE_SPRITES,
+  buildingTileKey,
+  vacantTileKey,
+  validateTileArt,
+} from './tileArt.ts'
+import {
+  RESIDENT_ART_HEIGHT,
+  RESIDENT_ART_WIDTH,
+  RESIDENT_ATLAS_ORDER,
+  RESIDENT_SPRITES,
+  residentArtKey,
+  validateResidentArt,
+} from './residentArt.ts'
+
+describe('tile art', () => {
+  it('keeps every tile sprite at 32×32', () => {
+    expect(() => validateTileArt()).not.toThrow()
+    expect(TILE_ATLAS_ORDER.length).toBeGreaterThan(20)
+
+    for (const key of TILE_ATLAS_ORDER) {
+      expect(TILE_SPRITES[key].rows).toHaveLength(TILE_ART_SIZE)
+      expect(TILE_SPRITES[key].rows.every((row) => row.length === TILE_ART_SIZE)).toBe(true)
+    }
+  })
+
+  it('picks a stable vacant tile for the same coordinates', () => {
+    expect(vacantTileKey(3, 8)).toBe(vacantTileKey(3, 8))
+    expect(buildingTileKey(TileType.House)).toBe('house')
+    expect(buildingTileKey(TileType.Road, 3)).toBe('road-3')
+    expect(buildingTileKey(TileType.Vacant)).toBeUndefined()
+  })
+
+  it('covers vacant land with grass or scenery', () => {
+    const keys = Array.from({ length: 40 }, (_, i) => vacantTileKey(i % 10, Math.floor(i / 10) + 4))
+    expect(
+      keys.every(
+        (key) => key.startsWith('grass-') || key === 'tree' || key === 'bush' || key === 'flower',
+      ),
+    ).toBe(true)
+    expect(keys.some((key) => key.startsWith('grass-'))).toBe(true)
+  })
+})
+
+describe('resident art', () => {
+  it('keeps every resident sprite at 12×16', () => {
+    expect(() => validateResidentArt()).not.toThrow()
+
+    for (const key of RESIDENT_ATLAS_ORDER) {
+      expect(RESIDENT_SPRITES[key].rows).toHaveLength(RESIDENT_ART_HEIGHT)
+      expect(RESIDENT_SPRITES[key].rows.every((row) => row.length === RESIDENT_ART_WIDTH)).toBe(
+        true,
+      )
+    }
+  })
+
+  it('maps age and job to a sprite', () => {
+    expect(residentArtKey({ age: 9 }, TileType.Farm)).toBe('child')
+    expect(residentArtKey({ age: 68 }, TileType.Shop)).toBe('elder')
+    expect(residentArtKey({ age: 30 }, TileType.Farm)).toBe('farmer')
+    expect(residentArtKey({ age: 30 }, TileType.Workshop)).toBe('artisan')
+    expect(residentArtKey({ age: 30 }, TileType.Shop)).toBe('merchant')
+    expect(residentArtKey({ age: 30 }, undefined)).toBe('townsfolk')
+  })
+})
+
+describe('road connections', () => {
+  it('links road tiles to neighbors', () => {
+    const map = new WorldMap(3, 3, 32)
+    expect(map.place(1, 1, TileType.Road)).toBe(true)
+    expect(map.place(2, 1, TileType.Road)).toBe(true)
+    expect(map.roadConnections(1, 1)).toBe(2)
+    expect(map.roadConnections(2, 1)).toBe(8)
+  })
+})

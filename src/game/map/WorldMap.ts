@@ -199,6 +199,27 @@ export class WorldMap {
     return true
   }
 
+  isRoad(x: number, y: number): boolean {
+    return this.getTile(x, y)?.type === TileType.Road
+  }
+
+  roadConnections(x: number, y: number): number {
+    let mask = 0
+    if (this.isRoad(x, y - 1)) {
+      mask |= 1
+    }
+    if (this.isRoad(x + 1, y)) {
+      mask |= 2
+    }
+    if (this.isRoad(x, y + 1)) {
+      mask |= 4
+    }
+    if (this.isRoad(x - 1, y)) {
+      mask |= 8
+    }
+    return mask
+  }
+
   private index(x: number, y: number): number {
     return y * this.width + x
   }

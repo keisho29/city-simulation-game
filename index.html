@@ -8,65 +8,177 @@
   </head>
   <body>
     <div id="app"></div>
-    <aside id="hud">
-      <p class="hud-title">東京モデル地域</p>
-      <p class="hud-date" id="hud-date">1700年 1月 1日</p>
-      <p class="hud-clock" id="hud-clock">0時00分</p>
-      <p class="hud-funds" id="hud-funds">資金 1,000</p>
-      <p class="hud-meta" id="hud-population">人口 20人 ・ 入居 0/20</p>
-      <p class="hud-meta" id="hud-employment">雇用 0/20</p>
-      <p class="hud-meta" id="hud-happiness">幸福 25</p>
-      <p class="hud-meta">50 × 50</p>
-      <p class="hud-hint" id="hud-hint">矢印キー / 右ドラッグで移動</p>
-      <p class="hud-hint">ホイールで拡大縮小</p>
-      <p class="hud-hint">進捗は自動保存されます</p>
-    </aside>
-    <nav id="speed-menu" aria-label="ゲーム速度">
-      <button type="button" data-speed="0" aria-pressed="false">停止</button>
-      <button type="button" data-speed="1" class="is-active" aria-pressed="true">×1</button>
-      <button type="button" data-speed="2" aria-pressed="false">×2</button>
-      <button type="button" data-speed="5" aria-pressed="false">×5</button>
-    </nav>
+
+    <header id="top-bar">
+      <div class="time-chip">
+        <p class="region-name">東京モデル地域</p>
+        <p class="hud-date" id="hud-date">1700年 1月 1日</p>
+        <div class="time-row">
+          <p class="hud-clock" id="hud-clock">00:00</p>
+          <nav id="speed-menu" aria-label="ゲーム速度">
+            <button type="button" data-speed="0" aria-label="停止" aria-pressed="false" title="停止">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <rect x="3" y="2" width="4" height="12" rx="1" />
+                <rect x="9" y="2" width="4" height="12" rx="1" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              data-speed="1"
+              class="is-active"
+              aria-label="×1"
+              aria-pressed="true"
+              title="×1"
+            >
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4 2.5v11l9-5.5-9-5.5Z" />
+              </svg>
+            </button>
+            <button type="button" data-speed="2" aria-label="×2" aria-pressed="false" title="×2">
+              <svg viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M2 3v10l6-5-6-5Zm7 0v10l6-5-6-5Z" />
+              </svg>
+            </button>
+            <button type="button" data-speed="5" aria-label="×5" aria-pressed="false" title="×5">
+              <svg viewBox="0 0 18 16" aria-hidden="true">
+                <path d="M1 3v10l5.5-5L1 3Zm6 0v10l5.5-5L7 3Zm6 0v10l5.5-5L13 3Z" />
+              </svg>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      <div class="stat-cards">
+        <article class="stat-card stat-card-pop">
+          <span class="stat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="8" r="3.2" />
+              <path d="M6 19c.6-3.2 3-5 6-5s5.4 1.8 6 5" />
+            </svg>
+          </span>
+          <div class="stat-copy">
+            <p class="stat-label">人口</p>
+            <p class="stat-value" id="hud-population">20</p>
+          </div>
+        </article>
+        <article class="stat-card stat-card-funds">
+          <span class="stat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="8" />
+              <path d="M12 7.5v9M9.5 9.5c.6-1 1.5-1.5 2.5-1.5s2 .6 2.5 1.5M9.5 14.5c.6 1 1.5 1.5 2.5 1.5s2-.6 2.5-1.5" />
+            </svg>
+          </span>
+          <div class="stat-copy">
+            <p class="stat-label">資金</p>
+            <p class="stat-value" id="hud-funds">1,000</p>
+          </div>
+        </article>
+        <article class="stat-card stat-card-happy">
+          <span class="stat-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="8" />
+              <circle cx="9" cy="10" r="1.1" />
+              <circle cx="15" cy="10" r="1.1" />
+              <path d="M8.5 14c1 1.6 2.4 2.4 3.5 2.4S14.5 15.6 15.5 14" />
+            </svg>
+          </span>
+          <div class="stat-copy">
+            <p class="stat-label">市民の満足度</p>
+            <p class="stat-value" id="hud-happiness">25%</p>
+          </div>
+        </article>
+      </div>
+    </header>
+
     <nav id="build-menu" aria-label="建築メニュー">
       <div class="menu-group" role="toolbar" aria-label="建築">
         <button type="button" data-tool="none" class="is-active" aria-pressed="true">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 4l14 7.2-6.2 1.6L11.2 20 5 4Z" />
+          </svg>
           見る
         </button>
-        <button type="button" data-tool="house" aria-pressed="false">
-          <span class="tool-swatch tool-swatch-house" aria-hidden="true"></span>
-          木造住宅
-        </button>
         <button type="button" data-tool="road" aria-pressed="false">
-          <span class="tool-swatch tool-swatch-road" aria-hidden="true"></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M9 3h6l3 18H6L9 3Z" />
+            <path d="M12 6v3M12 12v3M12 18v2" />
+          </svg>
           道路
         </button>
-        <button type="button" data-tool="farm" aria-pressed="false">
-          <span class="tool-swatch tool-swatch-farm" aria-hidden="true"></span>
-          農地
+        <button type="button" data-tool="house" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 11.5 12 5l8 6.5V20H4v-8.5Z" />
+            <path d="M10 20v-6h4v6" />
+          </svg>
+          住宅
         </button>
         <button type="button" data-tool="shop" aria-pressed="false">
-          <span class="tool-swatch tool-swatch-shop" aria-hidden="true"></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 10h14v10H5V10Z" />
+            <path d="M4 7h16l-1.2 3H5.2L4 7Z" />
+            <path d="M10 20v-5h4v5" />
+          </svg>
           商店
         </button>
         <button type="button" data-tool="workshop" aria-pressed="false">
-          <span class="tool-swatch tool-swatch-workshop" aria-hidden="true"></span>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 20V9l4-4h8l4 4v11H4Z" />
+            <path d="M9 20v-5h6v5" />
+            <path d="M8 9h8" />
+          </svg>
           工房
+        </button>
+        <button type="button" data-tool="farm" aria-pressed="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 4c2 3 2 6 0 8-2-2-2-5 0-8Z" />
+            <path d="M7 8c2.2 2.4 2.4 5.2.6 7.2C5.8 13.4 5.4 10.6 7 8Z" />
+            <path d="M17 8c1.6 2.6 1.2 5.4-0.4 7.2C14.6 13.2 14.8 10.4 17 8Z" />
+            <path d="M12 12v8" />
+          </svg>
+          農地
         </button>
       </div>
       <div class="menu-group" role="toolbar" aria-label="編集">
         <button type="button" data-tool="erase" aria-pressed="false">
-          削除
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 7h14M9 7V5h6v2M8 7l1 13h6l1-13" />
+          </svg>
+          撤去
         </button>
       </div>
       <div class="menu-group" role="radiogroup" aria-label="配置方法">
         <button type="button" data-paint-mode="click" class="is-active" aria-pressed="true">
           クリック
         </button>
-        <button type="button" data-paint-mode="drag" aria-pressed="false">
-          ドラッグ
-        </button>
+        <button type="button" data-paint-mode="drag" aria-pressed="false">ドラッグ</button>
       </div>
     </nav>
+
+    <aside id="side-panel">
+      <section class="panel-card">
+        <h2>都市の統計</h2>
+        <dl class="stat-list">
+          <div>
+            <dt>入居</dt>
+            <dd id="hud-housed">0/20</dd>
+          </div>
+          <div>
+            <dt>雇用</dt>
+            <dd id="hud-employment">0/20</dd>
+          </div>
+          <div>
+            <dt>マップ</dt>
+            <dd>50 × 50</dd>
+          </div>
+        </dl>
+      </section>
+      <section class="panel-card panel-help">
+        <p class="hud-hint" id="hud-hint">矢印キー / 右ドラッグで移動</p>
+        <p class="hud-hint">ホイールで拡大縮小</p>
+        <p class="hud-hint">進捗は自動保存されます</p>
+      </section>
+    </aside>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

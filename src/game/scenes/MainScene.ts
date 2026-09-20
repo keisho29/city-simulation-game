@@ -1,4 +1,11 @@
 import Phaser from 'phaser'
+import { createWorldArt, preloadWorldArt, RESIDENT_TEXTURE_KEY, TILE_TEXTURE_KEY } from '../art/createWorldArt.ts'
+import {
+  RESIDENT_DISPLAY_HEIGHT,
+  RESIDENT_DISPLAY_WIDTH,
+  residentArtKey,
+} from '../art/residentArt.ts'
+import { buildingTileKey, vacantTileKey } from '../art/tileArt.ts'
 import {
   BUILDINGS,
   BuildTool,
@@ -6,7 +13,6 @@ import {
   isEditTool,
   PaintMode,
 } from '../buildings/catalog.ts'
-import { drawBuilding } from '../buildings/drawBuilding.ts'
 import {
   INITIAL_FUNDS,
   MAX_CAMERA_ZOOM,
@@ -25,10 +31,7 @@ import { GameTime } from '../time/gameTime.ts'
 import { bindBuildMenu } from '../ui/buildMenu.ts'
 import { bindSpeedMenu } from '../ui/speedMenu.ts'
 
-const VACANT_LIGHT = 0x7ea34f
-const VACANT_DARK = 0x6d9144
-const GRID_COLOR = 0x3f5a2c
-const MAP_EDGE = 0x2c3f1e
+const MAP_EDGE = 0x3d6e1c
 const HOVER_VALID = 0xf2e6c4
 const HOVER_INVALID = 0xc4453c
 const SAVE_INTERVAL_MS = 5000
@@ -36,8 +39,9 @@ const SAVE_INTERVAL_MS = 5000
 export class MainScene extends Phaser.Scene {
   private worldMap = new WorldMap()
   private camControl: Phaser.Cameras.Controls.FixedKeyControl | undefined
-  private buildingGraphics: Phaser.GameObjects.Graphics | undefined
+  private tileSprites: Phaser.GameObjects.Image[] = []
   private hoverGraphics: Phaser.GameObjects.Graphics | undefined
+  private hoverPreview: Phaser.GameObjects.Image | undefined
   private selectedTool: BuildTool = BuildTool.None
   private paintMode: PaintMode = PaintMode.Click
   private hoverTile: { x: number; y: number } | undefined
@@ -45,22 +49,33 @@ export class MainScene extends Phaser.Scene {
   private dateLabel: HTMLElement | null = null
   private clockLabel: HTMLElement | null = null
   private populationLabel: HTMLElement | null = null
+  private housedLabel: HTMLElement | null = null
   private employmentLabel: HTMLElement | null = null
   private happinessLabel: HTMLElement | null = null
   private fundsLabel: HTMLElement | null = null
   private residentSim: ResidentSim | undefined
   private treasury = new Treasury(INITIAL_FUNDS)
-  private residentMarkers: Phaser.GameObjects.Arc[] = []
+  private residentMarkers: Phaser.GameObjects.Image[] = []
   private saveAccumMs = 0
 
   constructor() {
     super('MainScene')
   }
 
+  preload(): void {
+    preloadWorldArt(this)
+  }
+
   create(): void {
-    this.drawLand()
-    this.buildingGraphics = this.add.graphics().setDepth(1)
+    createWorldArt(this)
     this.hoverGraphics = this.add.graphics().setDepth(2)
+    this.hoverPreview = this.add
+      .image(0, 0, TILE_TEXTURE_KEY, 'house')
+      .setOrigin(0)
+      .setAlpha(0.55)
+      .setDepth(2)
+      .setVisible(false)
+      .setDisplaySize(this.worldMap.tileSize, this.worldMap.tileSize)
     this.setupCamera()
     this.setupCameraControls()
     this.setupBuildingInput()
@@ -71,6 +86,7 @@ export class MainScene extends Phaser.Scene {
     this.dateLabel = document.querySelector('#hud-date')
     this.clockLabel = document.querySelector('#hud-clock')
     this.populationLabel = document.querySelector('#hud-population')
+    this.housedLabel = document.querySelector('#hud-housed')
     this.employmentLabel = document.querySelector('#hud-employment')
     this.happinessLabel = document.querySelector('#hud-happiness')
     this.fundsLabel = document.querySelector('#hud-funds')
@@ -81,8 +97,8 @@ export class MainScene extends Phaser.Scene {
       this.gameTime.setSpeed(speed)
       this.persistGame()
     }, this.gameTime.speed)
+    this.createTileSprites()
     this.createResidentMarkers()
-    this.redrawBuildings()
     this.renderCityHud()
     this.setupAutosave()
   }
@@ -168,7 +184,9 @@ export class MainScene extends Phaser.Scene {
 
   private renderClock(): void {
     if (this.clockLabel) {
-      this.clockLabel.textContent = this.gameTime.formatClock()
+      const hour = String(this.gameTime.hour).padStart(2, '0')
+      const minute = String(this.gameTime.minute).padStart(2, '0')
+      this.clockLabel.textContent = `${hour}:${minute}`
     }
   }
 
@@ -181,12 +199,19 @@ export class MainScene extends Phaser.Scene {
       marker.destroy()
     }
 
-    this.residentMarkers = this.residentSim.residents.map((resident) =>
-      this.add
-        .circle(resident.worldX, resident.worldY, 7, 0xf2c14e)
-        .setStrokeStyle(2, 0x3a2714)
-        .setDepth(3),
-    )
+    this.residentMarkers = this.residentSim.residents.map((resident) => {
+      const jobType = this.jobTypeOf(resident.workplace)
+      return this.add
+        .image(
+          resident.worldX,
+          resident.worldY,
+          RESIDENT_TEXTURE_KEY,
+          residentArtKey(resident, jobType),
+        )
+        .setOrigin(0.5, 0.85)
+        .setDepth(3)
+        .setDisplaySize(RESIDENT_DISPLAY_WIDTH, RESIDENT_DISPLAY_HEIGHT)
+    })
   }
 
   private syncResidentMarkers(): void {
@@ -195,7 +220,24 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.residentSim.residents.forEach((resident, index) => {
-      this.residentMarkers[index]?.setPosition(resident.worldX, resident.worldY)
+      const sprite = this.residentMarkers[index]
+      if (!sprite) {
+        return
+      }
+
+      const dx = resident.worldX - sprite.x
+      if (Math.abs(dx) > 0.4) {
+        sprite.setFlipX(dx < 0)
+      }
+
+      const jobType = this.jobTypeOf(resident.workplace)
+      const frame = residentArtKey(resident, jobType)
+      if (sprite.frame.name !== frame) {
+        sprite.setFrame(frame)
+        sprite.setDisplaySize(RESIDENT_DISPLAY_WIDTH, RESIDENT_DISPLAY_HEIGHT)
+      }
+
+      sprite.setPosition(resident.worldX, resident.worldY)
     })
   }
 
@@ -210,16 +252,19 @@ export class MainScene extends Phaser.Scene {
     const happiness = this.residentSim.averageHappiness()
 
     if (this.populationLabel) {
-      this.populationLabel.textContent = `人口 ${population}人 ・ 入居 ${housed}/${population}`
+      this.populationLabel.textContent = population.toLocaleString('ja-JP')
+    }
+    if (this.housedLabel) {
+      this.housedLabel.textContent = `${housed}/${population}`
     }
     if (this.employmentLabel) {
-      this.employmentLabel.textContent = `雇用 ${employed}/${population}`
+      this.employmentLabel.textContent = `${employed}/${population}`
     }
     if (this.happinessLabel) {
-      this.happinessLabel.textContent = `幸福 ${happiness}`
+      this.happinessLabel.textContent = `${happiness}%`
     }
     if (this.fundsLabel) {
-      this.fundsLabel.textContent = `資金 ${this.treasury.funds.toLocaleString('ja-JP')}`
+      this.fundsLabel.textContent = this.treasury.funds.toLocaleString('ja-JP')
     }
   }
 
@@ -229,6 +274,7 @@ export class MainScene extends Phaser.Scene {
     if (tool === BuildTool.None) {
       this.hoverTile = undefined
       this.hoverGraphics?.clear()
+      this.hoverPreview?.setVisible(false)
       return
     }
 
@@ -239,56 +285,38 @@ export class MainScene extends Phaser.Scene {
     this.paintMode = mode
   }
 
-  private drawLand(): void {
-    const { width, height, tileSize, pixelWidth, pixelHeight } = this.worldMap
-    const graphics = this.add.graphics().setDepth(0)
-
-    for (let y = 0; y < height; y += 1) {
-      for (let x = 0; x < width; x += 1) {
-        graphics.fillStyle(this.tileColor(x, y))
-        graphics.fillRect(x * tileSize, y * tileSize, tileSize, tileSize)
-      }
+  private createTileSprites(): void {
+    for (const sprite of this.tileSprites) {
+      sprite.destroy()
     }
+    this.tileSprites = []
 
-    for (let x = 0; x <= width; x += 1) {
-      this.drawGridLine(graphics, x, width, x * tileSize, 0, x * tileSize, pixelHeight)
-    }
-    for (let y = 0; y <= height; y += 1) {
-      this.drawGridLine(graphics, y, height, 0, y * tileSize, pixelWidth, y * tileSize)
-    }
+    const { tileSize, pixelWidth, pixelHeight } = this.worldMap
 
-    graphics.lineStyle(2, MAP_EDGE, 1)
-    graphics.strokeRect(0, 0, pixelWidth, pixelHeight)
-  }
+    this.worldMap.forEachTile((x, y, tile) => {
+      const image = this.add
+        .image(x * tileSize, y * tileSize, TILE_TEXTURE_KEY, this.tileFrame(x, y, tile.type))
+        .setOrigin(0)
+        .setDepth(0)
+        .setDisplaySize(tileSize, tileSize)
+      this.tileSprites.push(image)
+    })
 
-  private tileColor(x: number, y: number): number {
-    return (x + y) % 2 === 0 ? VACANT_LIGHT : VACANT_DARK
+    const edge = this.add.graphics().setDepth(1)
+    edge.lineStyle(2, MAP_EDGE, 1)
+    edge.strokeRect(0, 0, pixelWidth, pixelHeight)
   }
 
   private setupCamera(): void {
     const camera = this.cameras.main
-    camera.setBackgroundColor(0x1a2214)
-    camera.setRoundPixels(true)
+    camera.setBackgroundColor(0x4a8a28)
+    camera.setRoundPixels(false)
     this.fitMapInView()
 
     this.scale.on(Phaser.Scale.Events.RESIZE, () => {
       this.cameras.resize(this.scale.gameSize.width, this.scale.gameSize.height)
       this.refreshCameraBounds()
     })
-  }
-
-  private drawGridLine(
-    graphics: Phaser.GameObjects.Graphics,
-    index: number,
-    max: number,
-    x1: number,
-    y1: number,
-    x2: number,
-    y2: number,
-  ): void {
-    const major = index === 0 || index === max || index % 10 === 0
-    graphics.lineStyle(major ? 2 : 1, GRID_COLOR, major ? 0.9 : 0.4)
-    graphics.lineBetween(x1, y1, x2, y2)
   }
 
   private fitMapInView(): void {
@@ -424,6 +452,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     graphics.clear()
+    this.hoverPreview?.setVisible(false)
     if (!this.hoverTile) {
       return
     }
@@ -446,8 +475,19 @@ export class MainScene extends Phaser.Scene {
       !isBuildingTool(this.selectedTool) ||
       this.treasury.canAfford(BUILDINGS[this.selectedTool].cost)
     const canPlace = this.worldMap.canPlace(x, y) && canAfford
-    if (canPlace && isBuildingTool(this.selectedTool)) {
-      drawBuilding(graphics, x, y, size, BUILDINGS[this.selectedTool].tileType, 0.55)
+    const previewFrame =
+      canPlace && isBuildingTool(this.selectedTool)
+        ? buildingTileKey(
+            BUILDINGS[this.selectedTool].tileType,
+            this.worldMap.roadConnections(x, y),
+          )
+        : undefined
+
+    if (previewFrame && this.hoverPreview) {
+      this.hoverPreview.setFrame(previewFrame)
+      this.hoverPreview.setDisplaySize(size, size)
+      this.hoverPreview.setPosition(x * size, y * size)
+      this.hoverPreview.setVisible(true)
       graphics.lineStyle(2, HOVER_VALID, 0.9)
     } else {
       graphics.lineStyle(2, HOVER_INVALID, 0.95)
@@ -466,7 +506,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private placeSelected(x: number, y: number): void {
-    if (!isBuildingTool(this.selectedTool) || !this.buildingGraphics) {
+    if (!isBuildingTool(this.selectedTool)) {
       return
     }
 
@@ -479,7 +519,7 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.treasury.spend(building.cost)
-    drawBuilding(this.buildingGraphics, x, y, this.worldMap.tileSize, building.tileType)
+    this.paintAround(x, y)
     this.residentSim?.refreshHousing()
     this.residentSim?.refreshJobs()
     this.renderCityHud()
@@ -492,27 +532,50 @@ export class MainScene extends Phaser.Scene {
       return
     }
 
-    this.redrawBuildings()
+    this.paintAround(x, y)
     this.residentSim?.refreshHousing()
     this.residentSim?.refreshJobs()
     this.redrawHover()
     this.persistGame()
   }
 
-  private redrawBuildings(): void {
-    const graphics = this.buildingGraphics
-    if (!graphics) {
+  private paintAround(x: number, y: number): void {
+    this.paintTile(x, y)
+    this.paintTile(x, y - 1)
+    this.paintTile(x + 1, y)
+    this.paintTile(x, y + 1)
+    this.paintTile(x - 1, y)
+  }
+
+  private tileFrame(x: number, y: number, type = this.worldMap.getTile(x, y)?.type): string {
+    if (!type || type === TileType.Vacant) {
+      return vacantTileKey(x, y)
+    }
+
+    return (
+      buildingTileKey(type, this.worldMap.roadConnections(x, y)) ?? vacantTileKey(x, y)
+    )
+  }
+
+  private paintTile(x: number, y: number): void {
+    const sprite = this.tileSprites[y * this.worldMap.width + x]
+    const tile = this.worldMap.getTile(x, y)
+    if (!sprite || !tile) {
       return
     }
 
-    graphics.clear()
-    this.worldMap.forEachTile((tileX, tileY, tile) => {
-      if (tile.type === TileType.Vacant) {
-        return
-      }
+    sprite.setFrame(this.tileFrame(x, y, tile.type))
+    sprite.setDisplaySize(this.worldMap.tileSize, this.worldMap.tileSize)
+  }
 
-      drawBuilding(graphics, tileX, tileY, this.worldMap.tileSize, tile.type)
-    })
+  private jobTypeOf(
+    workplace: { x: number; y: number } | undefined,
+  ): TileType | undefined {
+    if (!workplace) {
+      return undefined
+    }
+
+    return this.worldMap.getTile(workplace.x, workplace.y)?.type
   }
 
   private tileFromPointer(pointer: Phaser.Input.Pointer): { x: number; y: number } | undefined {
