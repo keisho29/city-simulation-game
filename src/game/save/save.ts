@@ -9,6 +9,7 @@ import type { Tile } from '../map/tile.ts'
 import { Terrain, TileType } from '../map/tile.ts'
 import { createResident, ResidentState, type Resident, type TileRef } from '../residents/resident.ts'
 import { parseProgress, type ProgressState } from '../progress/progress.ts'
+import type { TransitStats } from '../transit/service.ts'
 
 export const SAVE_VERSION = 1
 export const SAVE_STORAGE_KEY = 'city-simulation-game.save'
@@ -27,6 +28,7 @@ export type SaveSnapshot = {
   residents: Resident[]
   event: CityEventState
   progress: ProgressState
+  transit: TransitStats
 }
 
 const TILE_TYPES = new Set<string>(Object.values(TileType))
@@ -92,6 +94,7 @@ export function parseSnapshot(raw: unknown): SaveSnapshot | undefined {
     residents,
     event: parseEvent(raw.event),
     progress: parseProgress(raw.progress),
+    transit: parseTransit(raw.transit),
   }
 }
 
@@ -161,6 +164,13 @@ function parseResident(raw: unknown): Resident | undefined {
     return undefined
   }
 
+  const ridePath = parseRidePath(raw.ridePath)
+  const rideKind = raw.rideKind === 'rail' || raw.rideKind === 'water' ? raw.rideKind : undefined
+  let state = raw.state as ResidentState
+  if (state === ResidentState.Riding && (!ridePath || ridePath.length < 2)) {
+    state = parseTileRef(raw.home) ? ResidentState.MovingToHome : ResidentState.SeekingHome
+  }
+
   return createResident({
     id: raw.id,
     name: raw.name,
@@ -174,13 +184,47 @@ function parseResident(raw: unknown): Resident | undefined {
     haulAmount: isFiniteNumber(raw.haulAmount) ? Math.max(0, raw.haulAmount) : undefined,
     haulPickup: parseTileRef(raw.haulPickup),
     haulDrop: parseTileRef(raw.haulDrop),
+    rideKind,
+    ridePath,
+    rideIndex: isFiniteNumber(raw.rideIndex) ? Math.max(0, Math.floor(raw.rideIndex)) : undefined,
+    rideDest: parseTileRef(raw.rideDest),
+    rideArrive:
+      typeof raw.rideArrive === 'string' && RESIDENT_STATES.has(raw.rideArrive)
+        ? (raw.rideArrive as ResidentState)
+        : undefined,
     happiness: raw.happiness,
     hunger: isFiniteNumber(raw.hunger) ? Math.max(0, Math.min(100, raw.hunger)) : undefined,
     money: isFiniteNumber(raw.money) ? Math.max(0, raw.money) : undefined,
-    state: raw.state as ResidentState,
+    state,
     worldX: raw.worldX,
     worldY: raw.worldY,
   })
+}
+
+function parseRidePath(raw: unknown): TileRef[] | undefined {
+  if (!Array.isArray(raw)) {
+    return undefined
+  }
+  const path: TileRef[] = []
+  for (const entry of raw) {
+    const ref = parseTileRef(entry)
+    if (!ref) {
+      return undefined
+    }
+    path.push(ref)
+  }
+  return path.length > 0 ? path : undefined
+}
+
+function parseTransit(raw: unknown): TransitStats {
+  if (!isRecord(raw)) {
+    return { riders: 0, fares: 0, freight: 0 }
+  }
+  return {
+    riders: isFiniteNumber(raw.riders) ? Math.max(0, raw.riders) : 0,
+    fares: isFiniteNumber(raw.fares) ? Math.max(0, raw.fares) : 0,
+    freight: isFiniteNumber(raw.freight) ? Math.max(0, raw.freight) : 0,
+  }
 }
 
 function parseEvent(raw: unknown): CityEventState {

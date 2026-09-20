@@ -10,8 +10,11 @@ import {
 
 export const TILE_TEXTURE_KEY = 'tiles'
 export const ROAD_TEXTURE_KEY = 'roads'
+export const RAIL_TEXTURE_KEY = 'rails'
 export const WATER_TEXTURE_KEY = 'waters'
 export const GRASS_TEXTURE_KEY = 'grass-field'
+export const TRAIN_TEXTURE_KEY = 'vehicle-train'
+export const BOAT_TEXTURE_KEY = 'vehicle-boat'
 
 export const PROP_TEXTURE: Record<string, string> = {
   house: 'prop-house',
@@ -24,6 +27,8 @@ export const PROP_TEXTURE: Record<string, string> = {
   clinic: 'prop-clinic',
   school: 'prop-school',
   factory: 'prop-factory',
+  station: 'prop-station',
+  port: 'prop-port',
   tree: 'prop-tree',
   bush: 'prop-bush',
   flower: 'prop-flower',
@@ -81,11 +86,15 @@ export function createWorldArt(scene: Phaser.Scene): void {
   createPropTexture(scene.textures, PROP_TEXTURE.clinic, '')
   createPropTexture(scene.textures, PROP_TEXTURE.school, '')
   createPropTexture(scene.textures, PROP_TEXTURE.factory, '')
+  createPropTexture(scene.textures, PROP_TEXTURE.station, '')
+  createPropTexture(scene.textures, PROP_TEXTURE.port, '')
   createTreeTextures(scene.textures)
   createFlowerTexture(scene.textures)
   createPropTexture(scene.textures, PROP_TEXTURE.rock, '')
   createRoadAtlas(scene.textures)
+  createRailAtlas(scene.textures)
   createWaterAtlas(scene.textures)
+  createVehicleTextures(scene.textures)
   createResidentAtlas(scene.textures)
 }
 
@@ -805,6 +814,80 @@ function createRoadAtlas(textures: Phaser.Textures.TextureManager): void {
     texture.add(`road-${mask}`, 0, mask * ROAD_FRAME, 0, ROAD_FRAME, ROAD_FRAME)
   }
   texture.refresh()
+}
+
+function createRailAtlas(textures: Phaser.Textures.TextureManager): void {
+  const canvas = document.createElement('canvas')
+  canvas.width = ROAD_FRAME * ROAD_COUNT
+  canvas.height = ROAD_FRAME
+  const ctx = canvas.getContext('2d', { alpha: true })
+  if (!ctx) {
+    throw new Error('線路のテクスチャを作れませんでした')
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  disableSmooth(ctx)
+
+  for (let mask = 0; mask < ROAD_COUNT; mask += 1) {
+    const sprite = TILE_SPRITES[`rail-${mask}` as TileAtlasKey]
+    const stamp = document.createElement('canvas')
+    stamp.width = TILE_ART_SIZE
+    stamp.height = TILE_ART_SIZE
+    const stampCtx = stamp.getContext('2d', { alpha: true })
+    if (!stampCtx) {
+      continue
+    }
+    paintPixels(stampCtx, sprite, 1, 0, 0)
+    ctx.drawImage(stamp, 0, 0, TILE_ART_SIZE, TILE_ART_SIZE, mask * ROAD_FRAME, 0, ROAD_FRAME, ROAD_FRAME)
+  }
+
+  if (textures.exists(RAIL_TEXTURE_KEY)) {
+    textures.remove(RAIL_TEXTURE_KEY)
+  }
+  const texture = textures.addCanvas(RAIL_TEXTURE_KEY, canvas)
+  if (!texture) {
+    throw new Error('線路のテクスチャを作れませんでした')
+  }
+  texture.setFilter(Phaser.Textures.FilterMode.NEAREST)
+  for (let mask = 0; mask < ROAD_COUNT; mask += 1) {
+    texture.add(`rail-${mask}`, 0, mask * ROAD_FRAME, 0, ROAD_FRAME, ROAD_FRAME)
+  }
+  texture.refresh()
+}
+
+function createVehicleTextures(textures: Phaser.Textures.TextureManager): void {
+  const train = document.createElement('canvas')
+  train.width = 24
+  train.height = 14
+  const trainCtx = train.getContext('2d')
+  if (trainCtx) {
+    disableSmooth(trainCtx)
+    trainCtx.fillStyle = '#3a3a42'
+    trainCtx.fillRect(1, 4, 22, 8)
+    trainCtx.fillStyle = '#6a2a24'
+    trainCtx.fillRect(14, 2, 8, 10)
+    trainCtx.fillStyle = '#d8c48a'
+    trainCtx.fillRect(16, 4, 4, 3)
+    trainCtx.fillStyle = '#1a1a1a'
+    trainCtx.fillRect(3, 11, 4, 3)
+    trainCtx.fillRect(17, 11, 4, 3)
+    addCanvasTexture(textures, TRAIN_TEXTURE_KEY, train)
+  }
+
+  const boat = document.createElement('canvas')
+  boat.width = 24
+  boat.height = 14
+  const boatCtx = boat.getContext('2d')
+  if (boatCtx) {
+    disableSmooth(boatCtx)
+    boatCtx.fillStyle = '#6b4428'
+    boatCtx.fillRect(2, 7, 20, 5)
+    boatCtx.fillStyle = '#c4a070'
+    boatCtx.fillRect(4, 5, 16, 4)
+    boatCtx.fillStyle = '#eee8d8'
+    boatCtx.fillRect(11, 1, 2, 6)
+    addCanvasTexture(textures, BOAT_TEXTURE_KEY, boat)
+  }
 }
 
 function createWaterAtlas(textures: Phaser.Textures.TextureManager): void {

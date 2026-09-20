@@ -13,6 +13,8 @@ import {
   isBuildableTerrain,
   isFoodStallType,
   isGrowableType,
+  isTrackType,
+  isWaterTerrain,
   isWorkplaceType,
   TileType,
   type Tile,
@@ -79,13 +81,28 @@ export class WorldMap {
     return { x, y }
   }
 
-  canPlace(x: number, y: number): boolean {
+  canPlace(x: number, y: number, type?: TileType): boolean {
     const tile = this.getTile(x, y)
-    return tile?.type === TileType.Vacant && isBuildableTerrain(tile.terrain)
+    if (!tile || tile.type !== TileType.Vacant || !isBuildableTerrain(tile.terrain)) {
+      return false
+    }
+    if (type === TileType.Port) {
+      return this.hasWaterNeighbor(x, y)
+    }
+    return true
+  }
+
+  hasWaterNeighbor(x: number, y: number): boolean {
+    return (
+      isWaterTerrain(this.getTile(x, y - 1)?.terrain ?? Terrain.Grass) ||
+      isWaterTerrain(this.getTile(x + 1, y)?.terrain ?? Terrain.Grass) ||
+      isWaterTerrain(this.getTile(x, y + 1)?.terrain ?? Terrain.Grass) ||
+      isWaterTerrain(this.getTile(x - 1, y)?.terrain ?? Terrain.Grass)
+    )
   }
 
   place(x: number, y: number, type: TileType): boolean {
-    if (!this.canPlace(x, y)) {
+    if (!this.canPlace(x, y, type)) {
       return false
     }
 
@@ -405,18 +422,35 @@ export class WorldMap {
     return this.getTile(x, y)?.type === TileType.Road
   }
 
+  isRail(x: number, y: number): boolean {
+    const type = this.getTile(x, y)?.type
+    return type !== undefined && isTrackType(type)
+  }
+
   roadConnections(x: number, y: number): number {
+    return this.neighborMask(x, y, (nx, ny) => this.isRoad(nx, ny))
+  }
+
+  railConnections(x: number, y: number): number {
+    return this.neighborMask(x, y, (nx, ny) => this.isRail(nx, ny))
+  }
+
+  private neighborMask(
+    x: number,
+    y: number,
+    match: (nx: number, ny: number) => boolean,
+  ): number {
     let mask = 0
-    if (this.isRoad(x, y - 1)) {
+    if (match(x, y - 1)) {
       mask |= 1
     }
-    if (this.isRoad(x + 1, y)) {
+    if (match(x + 1, y)) {
       mask |= 2
     }
-    if (this.isRoad(x, y + 1)) {
+    if (match(x, y + 1)) {
       mask |= 4
     }
-    if (this.isRoad(x - 1, y)) {
+    if (match(x - 1, y)) {
       mask |= 8
     }
     return mask

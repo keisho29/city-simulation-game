@@ -293,6 +293,10 @@ body {
   cursor: pointer;
 }
 
+#build-menu button[hidden] {
+  display: none;
+}
+
 #build-menu button svg {
   width: 20px;
   height: 20px;

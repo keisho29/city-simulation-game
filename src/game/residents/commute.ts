@@ -9,7 +9,8 @@ export function isWorkHours(hour: number): boolean {
 export function applySchedule(resident: Resident, hour: number, isHoliday = false): void {
   if (
     resident.state === ResidentState.SeekingHome ||
-    resident.state === ResidentState.MovingIn
+    resident.state === ResidentState.MovingIn ||
+    resident.state === ResidentState.Riding
   ) {
     return
   }

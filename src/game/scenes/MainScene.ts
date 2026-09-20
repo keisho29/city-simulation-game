@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { createWorldArt, GRASS_CELL_PX, GRASS_TEXTURE_KEY, preloadWorldArt, PROP_TEXTURE, residentTextureKey, ROAD_TEXTURE_KEY, WATER_TEXTURE_KEY, textureForProp } from '../art/createWorldArt.ts'
+import { createWorldArt, GRASS_CELL_PX, GRASS_TEXTURE_KEY, preloadWorldArt, PROP_TEXTURE, residentTextureKey, RAIL_TEXTURE_KEY, ROAD_TEXTURE_KEY, TRAIN_TEXTURE_KEY, BOAT_TEXTURE_KEY, WATER_TEXTURE_KEY, textureForProp } from '../art/createWorldArt.ts'
 import {
   RESIDENT_DISPLAY_HEIGHT,
   RESIDENT_DISPLAY_WIDTH,
@@ -89,6 +89,7 @@ export class MainScene extends Phaser.Scene {
   private woodLabel: HTMLElement | null = null
   private goodsLabel: HTMLElement | null = null
   private eventLabel: HTMLElement | null = null
+  private transitLabel: HTMLElement | null = null
   private eraLabel: HTMLElement | null = null
   private developmentLabel: HTMLElement | null = null
   private techLabel: HTMLElement | null = null
@@ -97,6 +98,7 @@ export class MainScene extends Phaser.Scene {
   private residentSim: ResidentSim | undefined
   private treasury = new Treasury(INITIAL_FUNDS)
   private residentMarkers: Phaser.GameObjects.Image[] = []
+  private vehicleSprites: Phaser.GameObjects.Image[] = []
   private saveAccumMs = 0
   private selectedResidentId: string | undefined
   private selectedTile: { x: number; y: number } | undefined
@@ -145,6 +147,7 @@ export class MainScene extends Phaser.Scene {
     this.woodLabel = document.querySelector('#hud-wood')
     this.goodsLabel = document.querySelector('#hud-goods')
     this.eventLabel = document.querySelector('#hud-event')
+    this.transitLabel = document.querySelector('#hud-transit')
     this.eraLabel = document.querySelector('#hud-era')
     this.developmentLabel = document.querySelector('#hud-development')
     this.techLabel = document.querySelector('#hud-tech')
@@ -185,6 +188,7 @@ export class MainScene extends Phaser.Scene {
     }
     this.syncBuildingVisuals()
     this.syncResidentMarkers()
+    this.syncVehicleSprites()
     this.renderInspectedResident()
     this.flushDiscoveries()
     this.renderCityHud()
@@ -217,6 +221,7 @@ export class MainScene extends Phaser.Scene {
         snapshot.residents,
         snapshot.event,
         snapshot.progress,
+        snapshot.transit,
       )
       this.renderDate()
       this.renderClock()
@@ -268,6 +273,7 @@ export class MainScene extends Phaser.Scene {
       residents: this.residentSim.residents,
       event: this.residentSim.cityEvent,
       progress: this.residentSim.cityProgress,
+      transit: this.residentSim.transit.stats,
     })
   }
 
@@ -347,6 +353,39 @@ export class MainScene extends Phaser.Scene {
     })
   }
 
+  private syncVehicleSprites(): void {
+    const vehicles = this.residentSim?.transit.vehicles ?? []
+    while (this.vehicleSprites.length > vehicles.length) {
+      this.vehicleSprites.pop()?.destroy()
+    }
+    while (this.vehicleSprites.length < vehicles.length) {
+      const vehicle = vehicles[this.vehicleSprites.length]
+      const key = vehicle?.kind === 'boat' ? BOAT_TEXTURE_KEY : TRAIN_TEXTURE_KEY
+      this.vehicleSprites.push(
+        this.add.image(0, 0, key).setOrigin(0.5, 0.7).setDepth(35),
+      )
+    }
+
+    vehicles.forEach((vehicle, index) => {
+      const sprite = this.vehicleSprites[index]
+      if (!sprite) {
+        return
+      }
+      const key = vehicle.kind === 'boat' ? BOAT_TEXTURE_KEY : TRAIN_TEXTURE_KEY
+      if (sprite.texture.key !== key) {
+        sprite.setTexture(key)
+      }
+      const layout = PROP_LAYOUT[vehicle.kind] ?? PROP_LAYOUT.train
+      sprite.setPosition(vehicle.worldX, vehicle.worldY)
+      sprite.setDisplaySize(
+        this.worldMap.tileSize * layout.width,
+        this.worldMap.tileSize * layout.height,
+      )
+      sprite.setDepth(36 + vehicle.worldY / this.worldMap.tileSize)
+      sprite.setVisible(true)
+    })
+  }
+
   private renderCityHud(): void {
     if (!this.residentSim) {
       return
@@ -394,6 +433,13 @@ export class MainScene extends Phaser.Scene {
     if (this.eventLabel) {
       this.eventLabel.textContent = eventDisplayName(this.residentSim.cityEvent)
     }
+    if (this.transitLabel) {
+      const transit = this.residentSim.transit.summary(this.worldMap, this.residentSim.residents)
+      this.transitLabel.textContent =
+        transit.riders + transit.riding + transit.upkeep > 0
+          ? `乗降${transit.riders} 乗車${transit.riding} 維持${transit.upkeep}`
+          : '徒歩'
+    }
     if (this.eraLabel) {
       this.eraLabel.textContent = eraHudName(this.residentSim.cityProgress)
     }
@@ -419,6 +465,12 @@ export class MainScene extends Phaser.Scene {
       }
       if (id === 'industry') {
         showToast('工場が建てられるようになった')
+      }
+      if (id === 'logistics') {
+        showToast('港が建てられるようになった')
+      }
+      if (id === 'railways') {
+        showToast('駅と線路が建てられるようになった')
       }
     }
     sim.lastDiscoveries = []
@@ -717,14 +769,16 @@ export class MainScene extends Phaser.Scene {
     const canAfford =
       !isBuildingTool(this.selectedTool) ||
       this.treasury.canAfford(BUILDINGS[this.selectedTool].cost)
-    const canPlace = this.worldMap.canPlace(x, y) && canAfford
+    const tileType = isBuildingTool(this.selectedTool)
+      ? BUILDINGS[this.selectedTool].tileType
+      : undefined
+    const canPlace = Boolean(tileType) && this.worldMap.canPlace(x, y, tileType) && canAfford
+    const connections =
+      tileType === TileType.Rail
+        ? this.worldMap.railConnections(x, y)
+        : this.worldMap.roadConnections(x, y)
     const previewFrame =
-      canPlace && isBuildingTool(this.selectedTool)
-        ? buildingTileKey(
-            BUILDINGS[this.selectedTool].tileType,
-            this.worldMap.roadConnections(x, y),
-          )
-        : undefined
+      canPlace && tileType ? buildingTileKey(tileType, connections) : undefined
 
     if (previewFrame && this.hoverPreview) {
       this.layoutHoverPreview(previewFrame, x, y)
@@ -796,7 +850,9 @@ export class MainScene extends Phaser.Scene {
       return
     }
 
-    if (frame.startsWith('road-')) {
+    if (frame.startsWith('rail-')) {
+      this.hoverPreview.setTexture(RAIL_TEXTURE_KEY, frame)
+    } else if (frame.startsWith('road-')) {
       this.hoverPreview.setTexture(ROAD_TEXTURE_KEY, frame)
     } else {
       this.hoverPreview.setTexture(textureForProp(frame))
@@ -811,7 +867,7 @@ export class MainScene extends Phaser.Scene {
     y: number,
   ): void {
     const size = this.worldMap.tileSize
-    const layoutKey = frame.startsWith('road-') ? 'road' : frame
+    const layoutKey = frame.startsWith('road-') ? 'road' : frame.startsWith('rail-') ? 'rail' : frame
     const layout = PROP_LAYOUT[layoutKey] ?? PROP_LAYOUT.house
     const tile = this.worldMap.getTile(x, y)
     const forestTree = tile?.terrain === Terrain.Forest && (frame === 'tree' || frame === 'bush')
@@ -823,7 +879,9 @@ export class MainScene extends Phaser.Scene {
           : { x: 0, y: 0 }
     const width = size * layout.width
     const height = size * layout.height
-    const growable = Boolean(tile && isGrowableType(tile.type) && !frame.startsWith('road-'))
+    const growable = Boolean(
+      tile && isGrowableType(tile.type) && !frame.startsWith('road-') && !frame.startsWith('rail-'),
+    )
     const level = growable && tile ? tile.level : 1
     const variant = tile?.variant ?? 0
     const boost = growable ? 1 + (level - 1) * BUILDING_SCALE_PER_LEVEL : 1
@@ -837,13 +895,19 @@ export class MainScene extends Phaser.Scene {
     const era = this.residentSim?.cityProgress.era ?? EraId.Edo
     if (frame.startsWith('road-')) {
       sprite.setTint(eraRoadTint(era))
+    } else if (frame.startsWith('rail-')) {
+      sprite.setTint(era === EraId.Meiji ? 0xd0ccc4 : 0xb8b0a4)
     } else if (growable && tile) {
       sprite.setTint(buildingTint(tile.type, level, variant, era))
     } else {
       sprite.clearTint()
     }
     sprite.setDepth(
-      frame.startsWith('road-') || frame === 'flower' || frame === 'water' || frame === 'river'
+      frame.startsWith('road-') ||
+        frame.startsWith('rail-') ||
+        frame === 'flower' ||
+        frame === 'water' ||
+        frame === 'river'
         ? 1 + y * 0.02
         : 18 + y,
     )
@@ -864,6 +928,15 @@ export class MainScene extends Phaser.Scene {
       const frame = buildingTileKey(tile.type, this.worldMap.roadConnections(x, y)) ?? 'road-0'
       ground.setVisible(true)
       ground.setTexture(ROAD_TEXTURE_KEY, frame)
+      this.placeVisual(ground, frame, x, y)
+      prop.setVisible(false)
+      return
+    }
+
+    if (tile.type === TileType.Rail) {
+      const frame = buildingTileKey(tile.type, this.worldMap.railConnections(x, y)) ?? 'rail-0'
+      ground.setVisible(true)
+      ground.setTexture(RAIL_TEXTURE_KEY, frame)
       this.placeVisual(ground, frame, x, y)
       prop.setVisible(false)
       return

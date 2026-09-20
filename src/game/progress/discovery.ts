@@ -51,7 +51,19 @@ export function tickTechDiscovery(
       }
       if (job === TileType.Factory) {
         add(TechId.Industry, gameHours * 1.4)
+        add(TechId.Railways, gameHours * 0.6)
       }
+      if (job === TileType.Station) {
+        add(TechId.Railways, gameHours * 1.4)
+      }
+      if (job === TileType.Port) {
+        add(TechId.Logistics, gameHours * 1.2)
+      }
+    }
+
+    if (resident.state === ResidentState.Riding) {
+      add(TechId.Railways, gameHours)
+      add(TechId.Logistics, gameHours * 0.4)
     }
 
     if (

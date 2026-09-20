@@ -14,6 +14,7 @@ export const RESIDENT_STATE_LABELS: Record<ResidentState, string> = {
   [ResidentState.Shopping]: '買い物中',
   [ResidentState.MovingToPickup]: '荷物を取りに行っている',
   [ResidentState.Hauling]: '荷物を運んでいる',
+  [ResidentState.Riding]: '乗り物に乗っている',
 }
 
 export type ResidentDetailView = {
@@ -51,6 +52,10 @@ export function workplaceLabel(type: TileType | undefined): string {
       return '寺子屋'
     case TileType.Factory:
       return '工場'
+    case TileType.Station:
+      return '駅'
+    case TileType.Port:
+      return '港'
     default:
       return '未就職'
   }

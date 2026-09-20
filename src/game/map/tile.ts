@@ -11,6 +11,9 @@ export const TileType = {
   Clinic: 'clinic',
   School: 'school',
   Factory: 'factory',
+  Station: 'station',
+  Rail: 'rail',
+  Port: 'port',
 } as const
 
 export type TileType = (typeof TileType)[keyof typeof TileType]
@@ -46,8 +49,14 @@ export function isWorkplaceType(type: TileType): boolean {
     type === TileType.Warehouse ||
     type === TileType.Clinic ||
     type === TileType.School ||
-    type === TileType.Factory
+    type === TileType.Factory ||
+    type === TileType.Station ||
+    type === TileType.Port
   )
+}
+
+export function isTrackType(type: TileType): boolean {
+  return type === TileType.Rail || type === TileType.Station
 }
 
 export function isFoodStallType(type: TileType): boolean {

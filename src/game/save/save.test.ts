@@ -57,6 +57,8 @@ describe('parseSnapshot', () => {
     expect(parsed?.event.kind).toBe('none')
     expect(parsed?.progress.era).toBe('edo')
     expect(parsed?.progress.discovered).toEqual([])
+    expect(parsed?.transit.riders).toBe(0)
+    expect(parsed?.transit.fares).toBe(0)
   })
 
   it('restores era and discovered technologies', () => {

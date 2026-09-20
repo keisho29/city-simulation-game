@@ -10,7 +10,9 @@ import {
   WAGE_MARKET_PER_HOUR,
   WAGE_SCHOOL_PER_HOUR,
   WAGE_FACTORY_PER_HOUR,
+  WAGE_PORT_PER_HOUR,
   WAGE_SHOP_PER_HOUR,
+  WAGE_STATION_PER_HOUR,
   WAGE_WAREHOUSE_PER_HOUR,
   WAGE_WORKSHOP_PER_HOUR,
   type GameSpeed,
@@ -46,6 +48,10 @@ export function wagePerHour(type: TileType | undefined): number {
       return WAGE_SCHOOL_PER_HOUR
     case TileType.Factory:
       return WAGE_FACTORY_PER_HOUR
+    case TileType.Station:
+      return WAGE_STATION_PER_HOUR
+    case TileType.Port:
+      return WAGE_PORT_PER_HOUR
     default:
       return 0
   }

@@ -12,7 +12,11 @@ export function cityDevelopment(map: WorldMap, residents: readonly Resident[]): 
   const kinds = new Set<string>()
   let levels = 0
   map.forEachTile((_x, _y, tile) => {
-    if (tile.type !== TileType.Vacant && tile.type !== TileType.Road) {
+    if (
+      tile.type !== TileType.Vacant &&
+      tile.type !== TileType.Road &&
+      tile.type !== TileType.Rail
+    ) {
       kinds.add(tile.type)
       levels += tile.level
     }

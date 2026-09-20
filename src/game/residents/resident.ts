@@ -12,6 +12,7 @@ export const ResidentState = {
   Shopping: 'SHOPPING',
   MovingToPickup: 'MOVING_TO_PICKUP',
   Hauling: 'HAULING',
+  Riding: 'RIDING',
 } as const
 
 export type ResidentState = (typeof ResidentState)[keyof typeof ResidentState]
@@ -32,12 +33,25 @@ export type Resident = {
   haulAmount: number | undefined
   haulPickup: TileRef | undefined
   haulDrop: TileRef | undefined
+  rideKind: 'rail' | 'water' | undefined
+  ridePath: TileRef[] | undefined
+  rideIndex: number | undefined
+  rideDest: TileRef | undefined
+  rideArrive: ResidentState | undefined
   happiness: number
   hunger: number
   money: number
   state: ResidentState
   worldX: number
   worldY: number
+}
+
+export function clearRide(resident: Resident): void {
+  resident.rideKind = undefined
+  resident.ridePath = undefined
+  resident.rideIndex = undefined
+  resident.rideDest = undefined
+  resident.rideArrive = undefined
 }
 
 export function createResident(overrides: Partial<Resident> = {}): Resident {
@@ -52,6 +66,11 @@ export function createResident(overrides: Partial<Resident> = {}): Resident {
     haulAmount: overrides.haulAmount,
     haulPickup: overrides.haulPickup,
     haulDrop: overrides.haulDrop,
+    rideKind: overrides.rideKind,
+    ridePath: overrides.ridePath,
+    rideIndex: overrides.rideIndex,
+    rideDest: overrides.rideDest,
+    rideArrive: overrides.rideArrive,
     happiness: overrides.happiness ?? HAPPINESS_BASE,
     hunger: overrides.hunger ?? INITIAL_HUNGER,
     money: overrides.money ?? INITIAL_RESIDENT_MONEY,

@@ -84,8 +84,17 @@ export function buildingDisplayName(type: TileType, level: number, variant: numb
   if (type === TileType.Factory) {
     return level >= 3 ? '大きな工場' : level === 2 ? '機械工場' : '工場'
   }
+  if (type === TileType.Station) {
+    return level >= 3 ? '大きな駅' : level === 2 ? '停車場' : '駅'
+  }
+  if (type === TileType.Port) {
+    return level >= 3 ? '大きな港' : level === 2 ? '船着場' : '港'
+  }
   if (type === TileType.Road) {
     return '道路'
+  }
+  if (type === TileType.Rail) {
+    return '線路'
   }
   return '空き地'
 }
@@ -116,6 +125,10 @@ export function buildingTint(
       tint = level >= 3 ? 0xc8f0d8 : 0xe0f8e8
     } else if (type === TileType.School) {
       tint = level >= 3 ? 0xc8d8ff : 0xe0e8ff
+    } else if (type === TileType.Station) {
+      tint = level >= 3 ? 0xd0d8e8 : 0xe4e8f0
+    } else if (type === TileType.Port) {
+      tint = level >= 3 ? 0xc8e0f0 : 0xd8ecf8
     } else {
       tint = level >= 3 ? 0xd0ff90 : 0xe8ffb0
     }
@@ -130,6 +143,12 @@ export function buildingTint(
     }
     if (type === TileType.Factory) {
       return 0xc8b4a0
+    }
+    if (type === TileType.Station) {
+      return 0xd8dde8
+    }
+    if (type === TileType.Port) {
+      return 0xc4dcec
     }
     if (tint === 0xffffff) {
       return 0xe4f0d8

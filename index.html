@@ -71,6 +71,13 @@
           </svg>
           道路
         </button>
+        <button type="button" data-tool="rail" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 8h16M4 16h16" />
+            <path d="M7 6v12M12 6v12M17 6v12" />
+          </svg>
+          線路
+        </button>
         <button type="button" data-tool="house" aria-pressed="false">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 11.5 12 5l8 6.5V20H4v-8.5Z" />
@@ -127,6 +134,14 @@
           </svg>
           倉庫
         </button>
+        <button type="button" data-tool="port" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 16h16" />
+            <path d="M6 16V10l6-4 6 4v6" />
+            <path d="M4 19h16" />
+          </svg>
+          港
+        </button>
         <button type="button" data-tool="clinic" aria-pressed="false">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 20V10l8-6 8 6v10H4Z" />
@@ -147,6 +162,14 @@
             <path d="M18 8V4" />
           </svg>
           工場
+        </button>
+        <button type="button" data-tool="station" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 20V9l7-5 7 5v11H5Z" />
+            <path d="M9 20v-6h6v6" />
+            <path d="M4 20h16" />
+          </svg>
+          駅
         </button>
       </div>
       <div class="menu-group" role="toolbar" aria-label="編集">
@@ -225,6 +248,10 @@
             <dt>出来事</dt>
             <dd id="hud-event">なし</dd>
           </div>
+          <div>
+            <dt>交通</dt>
+            <dd id="hud-transit">徒歩</dd>
+          </div>
           <div id="hud-funds-note" hidden>
             <dt>資金</dt>
             <dd>開発用・固定</dd>
@@ -299,6 +326,10 @@
           <div>
             <dt>在庫</dt>
             <dd id="tile-stock"></dd>
+          </div>
+          <div>
+            <dt>交通</dt>
+            <dd id="tile-transit"></dd>
           </div>
         </dl>
       </section>

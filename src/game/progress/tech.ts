@@ -5,6 +5,7 @@ import {
   TECH_COST_INDUSTRY,
   TECH_COST_LITERACY,
   TECH_COST_LOGISTICS,
+  TECH_COST_RAILWAYS,
   TECH_COST_TRADE,
 } from '../constants.ts'
 import { EraId } from './era.ts'
@@ -17,6 +18,7 @@ export const TechId = {
   Logistics: 'logistics',
   Literacy: 'literacy',
   Industry: 'industry',
+  Railways: 'railways',
 } as const
 
 export type TechId = (typeof TechId)[keyof typeof TechId]
@@ -60,6 +62,7 @@ export const TECHS: Record<TechId, TechDef> = {
     name: '物流',
     era: EraId.Edo,
     cost: TECH_COST_LOGISTICS,
+    unlockBuildings: ['port'],
   },
   literacy: {
     id: TechId.Literacy,
@@ -75,6 +78,14 @@ export const TECHS: Record<TechId, TechDef> = {
     cost: TECH_COST_INDUSTRY,
     requires: [TechId.Craft],
     unlockBuildings: ['factory'],
+  },
+  railways: {
+    id: TechId.Railways,
+    name: '鉄道',
+    era: EraId.Meiji,
+    cost: TECH_COST_RAILWAYS,
+    requires: [TechId.Industry],
+    unlockBuildings: ['station', 'rail'],
   },
 }
 

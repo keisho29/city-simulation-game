@@ -40,6 +40,20 @@ export const INITIAL_FUNDS = 1000
 export const DEV_FREEZE_FUNDS = true
 export const DEV_FIXED_FUNDS = 9000
 export const RESIDENT_MOVE_SPEED = 48
+export const WALK_SPEED_MULT = 1
+export const ROAD_SPEED_MULT = 1.55
+export const RAIL_SPEED_MULT = 3.2
+export const WATER_SPEED_MULT = 2.2
+export const TRAIN_MOVE_SPEED = 96
+export const BOAT_MOVE_SPEED = 72
+export const TRANSIT_WALK_MAX = 8
+export const TRANSIT_FARE = 2
+export const RAIL_UPKEEP_PER_TILE_HOUR = 0.06
+export const STATION_UPKEEP_PER_HOUR = 0.5
+export const PORT_UPKEEP_PER_HOUR = 0.45
+export const FREIGHT_PER_HOUR = 2
+export const FREIGHT_FARE_PER_UNIT = 0.3
+export const HUB_CATCH_RADIUS = 2
 
 export const HAPPINESS_BASE = 50
 export const HAPPINESS_HAS_JOB = 20
@@ -125,6 +139,8 @@ export const SHOP_CITY_CUT = 4
 export const WAGE_LEVEL_BONUS = 0.25
 export const WAGE_SCHOOL_PER_HOUR = 4
 export const WAGE_FACTORY_PER_HOUR = 6
+export const WAGE_STATION_PER_HOUR = 4
+export const WAGE_PORT_PER_HOUR = 4
 
 export const ERA_ADVANCE_DEVELOPMENT = 28
 export const ERA_ADVANCE_HOUSED = 4
@@ -135,5 +151,6 @@ export const TECH_COST_HYGIENE = 12
 export const TECH_COST_LOGISTICS = 12
 export const TECH_COST_LITERACY = 18
 export const TECH_COST_INDUSTRY = 16
+export const TECH_COST_RAILWAYS = 18
 export const FARMING_HARVEST_BONUS = 1.15
 

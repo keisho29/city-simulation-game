@@ -21,7 +21,8 @@ export function maybeStartShopping(
     resident.state === ResidentState.Shopping ||
     resident.state === ResidentState.MovingToHome ||
     resident.state === ResidentState.MovingToPickup ||
-    resident.state === ResidentState.Hauling
+    resident.state === ResidentState.Hauling ||
+    resident.state === ResidentState.Riding
   ) {
     return
   }

@@ -14,6 +14,7 @@ describe('tile inspect', () => {
     expect(view?.xp).toBe('0 / 60')
     expect(view?.capacity).toBe('住居 1/1')
     expect(view?.stock).toBe('-')
+    expect(view?.transit).toBe('-')
     expect(Number(view?.value)).toBeGreaterThan(0)
   })
 

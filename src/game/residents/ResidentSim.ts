@@ -29,8 +29,10 @@ import { applyHappiness, averageHappiness } from './happiness.ts'
 import { assignHomes, relocateIfNeeded } from './housing.ts'
 import { gameHoursFromDelta, tickNeeds } from './needs.ts'
 import { residentAge, residentName } from './names.ts'
-import { createResident, ResidentState, type Resident, type TileRef } from './resident.ts'
+import { clearRide, createResident, ResidentState, type Resident, type TileRef } from './resident.ts'
 import { finishShopping, maybeStartShopping } from './shopping.ts'
+import { moveSpeedMultiplier, planTransit, sameTile } from '../transit/network.ts'
+import { TransitService, type TransitStats } from '../transit/service.ts'
 
 const ARRIVE_DISTANCE = 2
 
@@ -39,6 +41,7 @@ export class ResidentSim {
   cityEvent: CityEventState
   cityProgress: ProgressState
   lastDiscoveries: ReturnType<typeof tickTechDiscovery> = []
+  readonly transit: TransitService
   private readonly map: WorldMap
   private inflowHours = 0
 
@@ -47,10 +50,12 @@ export class ResidentSim {
     residents?: Resident[],
     cityEvent?: CityEventState,
     progress?: ProgressState,
+    transit?: Partial<TransitStats>,
   ) {
     this.map = map
     this.cityEvent = cityEvent ? { ...cityEvent } : createCityEvent()
     this.cityProgress = createProgress(progress)
+    this.transit = new TransitService(transit)
     if (residents) {
       this.residents = residents.map((resident) => createResident(resident))
       return
@@ -106,8 +111,8 @@ export class ResidentSim {
       return
     }
 
-    const step = RESIDENT_MOVE_SPEED * (speed / 1) * (deltaMs / 1000)
     const gameHours = gameHoursFromDelta(deltaMs, speed)
+    this.transit.tick(this.map, deltaMs, speed, gameHours, treasury)
     this.cityEvent = tickCityEvents(this.cityEvent, gameHours)
     const harvest =
       harvestMultiplier(this.cityEvent) *
@@ -123,7 +128,7 @@ export class ResidentSim {
       tryStartHaul(resident, this.map)
       maybeStartShopping(resident, this.map, hour, isHoliday)
       relocateIfNeeded(this.map, [resident])
-      this.walkTowardGoal(resident, step, hour, isHoliday, treasury)
+      this.walkTowardGoal(resident, deltaMs, speed, hour, isHoliday, treasury)
     }
 
     this.fillOpenedSlots()
@@ -173,11 +178,25 @@ export class ResidentSim {
 
   private walkTowardGoal(
     resident: Resident,
-    step: number,
+    deltaMs: number,
+    speed: GameSpeed,
     hour: number,
     isHoliday: boolean,
     treasury?: Treasury,
   ): void {
+    this.prepareTransit(resident)
+    const rideKind = resident.state === ResidentState.Riding ? resident.rideKind : undefined
+    const step =
+      RESIDENT_MOVE_SPEED *
+      moveSpeedMultiplier(this.map, resident.worldX, resident.worldY, rideKind) *
+      (speed / 1) *
+      (deltaMs / 1000)
+
+    if (resident.state === ResidentState.Riding) {
+      this.rideAlong(resident, step)
+      return
+    }
+
     const goal = this.walkGoal(resident)
     if (!goal) {
       return
@@ -191,6 +210,12 @@ export class ResidentSim {
     if (distance <= ARRIVE_DISTANCE || distance <= step) {
       resident.worldX = target.x
       resident.worldY = target.y
+      if (goal.arriveState === ResidentState.Riding) {
+        this.transit.board(resident, treasury)
+        resident.state = ResidentState.Riding
+        resident.rideIndex = 0
+        return
+      }
       if (goal.arriveState === ResidentState.Shopping) {
         finishShopping(resident, this.map, treasury)
         return
@@ -212,7 +237,117 @@ export class ResidentSim {
     resident.worldY += (dy / distance) * step
   }
 
+  private prepareTransit(resident: Resident): void {
+    if (resident.state === ResidentState.Riding) {
+      return
+    }
+
+    const goal = this.finalWalkGoal(resident)
+    if (!goal) {
+      clearRide(resident)
+      return
+    }
+
+    if (resident.rideDest && sameTile(resident.rideDest, goal.tile)) {
+      return
+    }
+
+    clearRide(resident)
+    const from = this.map.worldToTile(resident.worldX, resident.worldY)
+    if (!from) {
+      return
+    }
+
+    const plan = planTransit(this.map, from, goal.tile)
+    if (plan.mode === 'walk') {
+      return
+    }
+
+    resident.rideKind = plan.mode
+    resident.ridePath = plan.path
+    resident.rideIndex = 0
+    resident.rideDest = goal.tile
+    resident.rideArrive = goal.arriveState
+  }
+
+  private rideAlong(resident: Resident, step: number): void {
+    const path = resident.ridePath
+    if (!path || path.length < 2) {
+      this.finishRide(resident)
+      return
+    }
+
+    const index = resident.rideIndex ?? 0
+    const nextIndex = Math.min(path.length - 1, index + 1)
+    const next = path[nextIndex]
+    if (!next) {
+      this.finishRide(resident)
+      return
+    }
+
+    const target = this.map.tileCenter(next.x, next.y)
+    const dx = target.x - resident.worldX
+    const dy = target.y - resident.worldY
+    const distance = Math.hypot(dx, dy)
+    if (distance <= ARRIVE_DISTANCE || distance <= step) {
+      resident.worldX = target.x
+      resident.worldY = target.y
+      resident.rideIndex = nextIndex
+      if (nextIndex >= path.length - 1) {
+        this.finishRide(resident)
+      }
+      return
+    }
+
+    resident.worldX += (dx / distance) * step
+    resident.worldY += (dy / distance) * step
+  }
+
+  private finishRide(resident: Resident): void {
+    const dest = resident.rideDest
+    const arrive = resident.rideArrive
+    resident.rideKind = undefined
+    resident.ridePath = undefined
+    resident.rideIndex = undefined
+    resident.rideDest = dest
+    resident.rideArrive = arrive
+    if (arrive === ResidentState.Working) {
+      resident.state = ResidentState.MovingToWork
+      return
+    }
+    if (arrive === ResidentState.Home) {
+      resident.state = ResidentState.MovingToHome
+      return
+    }
+    if (arrive === ResidentState.Shopping) {
+      resident.state = ResidentState.MovingToShop
+      return
+    }
+    if (arrive === ResidentState.Hauling) {
+      resident.state = ResidentState.MovingToPickup
+      return
+    }
+    if (arrive === ResidentState.MovingToWork) {
+      resident.state = ResidentState.Hauling
+      return
+    }
+    resident.state = dest && resident.home ? ResidentState.MovingToHome : ResidentState.SeekingHome
+  }
+
   private walkGoal(
+    resident: Resident,
+  ): { tile: TileRef; arriveState: ResidentState } | undefined {
+    if (
+      resident.ridePath &&
+      resident.ridePath[0] &&
+      resident.state !== ResidentState.Riding
+    ) {
+      return { tile: resident.ridePath[0], arriveState: ResidentState.Riding }
+    }
+    return this.finalWalkGoal(resident)
+  }
+
+  private finalWalkGoal(
     resident: Resident,
   ): { tile: TileRef; arriveState: ResidentState } | undefined {
     if (

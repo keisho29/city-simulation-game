@@ -33,6 +33,9 @@ export const TILE_ATLAS_ORDER = [
   'clinic',
   'school',
   'factory',
+  'station',
+  'port',
+  ...Array.from({ length: ROAD_COUNT }, (_, index) => `rail-${index}`),
 ] as const
 
 export type TileAtlasKey = (typeof TILE_ATLAS_ORDER)[number]
@@ -462,6 +465,86 @@ function makeFactory(): PixelSprite {
   return canvas.toSprite(LAND)
 }
 
+function makeStation(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE)
+  canvas.fillRect(3, 27, 26, 4, 'h')
+  canvas.fillRect(4, 26, 24, 2, 'H')
+  canvas.fillRect(6, 12, 20, 14, 'B')
+  canvas.fillRect(7, 13, 18, 12, 'N')
+  outlineRect(canvas, 6, 12, 20, 14, '#')
+  for (let i = 0; i < 8; i += 1) {
+    canvas.fillRect(5 + Math.floor(i / 2), 5 + i, 22 - i, 1, i < 3 ? 'A' : 'K')
+  }
+  canvas.fillRect(8, 16, 4, 3, 'I')
+  canvas.fillRect(20, 16, 4, 3, 'I')
+  canvas.fillRect(13, 20, 6, 6, 'D')
+  canvas.fillRect(14, 8, 4, 3, 'A')
+  return canvas.toSprite(LAND)
+}
+
+function makePort(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE)
+  canvas.fillRect(2, 22, 28, 8, 'u')
+  canvas.fillRect(3, 23, 26, 6, 'U')
+  canvas.fillRect(5, 18, 22, 6, '8')
+  canvas.fillRect(6, 12, 14, 10, 'n')
+  outlineRect(canvas, 6, 12, 14, 10, '#')
+  canvas.fillRect(8, 14, 4, 3, 'I')
+  canvas.fillRect(10, 18, 4, 4, 'D')
+  canvas.fillRect(21, 10, 5, 12, 'K')
+  canvas.fillRect(22, 8, 3, 3, 'M')
+  canvas.fillRect(4, 20, 2, 4, 'T')
+  canvas.fillRect(26, 20, 2, 4, 'T')
+  return canvas.toSprite(LAND)
+}
+
+function makeRail(mask: number): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE, '8')
+  for (let y = 0; y < TILE_ART_SIZE; y += 1) {
+    for (let x = 0; x < TILE_ART_SIZE; x += 1) {
+      const n = rnd(mask + 31, x * 17 + y) % 100
+      canvas.set(x, y, n < 18 ? '7' : n < 40 ? 'H' : n < 70 ? '8' : 'h')
+    }
+  }
+
+  const north = (mask & 1) !== 0
+  const east = (mask & 2) !== 0
+  const south = (mask & 4) !== 0
+  const west = (mask & 8) !== 0
+  const vertical = north || south || mask === 0
+  const horizontal = east || west || mask === 0
+
+  if (vertical) {
+    const y0 = north || mask === 0 ? 0 : 12
+    const y1 = south || mask === 0 ? TILE_ART_SIZE : 20
+    for (let y = y0; y < y1; y += 1) {
+      if (y % 4 === 0) {
+        canvas.fillRect(11, y, 10, 2, 'K')
+      }
+      canvas.set(13, y, 'S')
+      canvas.set(14, y, 'R')
+      canvas.set(17, y, 'R')
+      canvas.set(18, y, 'S')
+    }
+  }
+
+  if (horizontal) {
+    const x0 = west || mask === 0 ? 0 : 12
+    const x1 = east || mask === 0 ? TILE_ART_SIZE : 20
+    for (let x = x0; x < x1; x += 1) {
+      if (x % 4 === 0) {
+        canvas.fillRect(x, 11, 2, 10, 'K')
+      }
+      canvas.set(x, 13, 'S')
+      canvas.set(x, 14, 'R')
+      canvas.set(x, 17, 'R')
+      canvas.set(x, 18, 'S')
+    }
+  }
+
+  return canvas.toSprite(LAND)
+}
+
 function buildSprites(): Record<TileAtlasKey, PixelSprite> {
   const sprites = {
     'grass-base': makeGrass('base'),
@@ -487,10 +570,13 @@ function buildSprites(): Record<TileAtlasKey, PixelSprite> {
     clinic: makeClinic(),
     school: makeSchool(),
     factory: makeFactory(),
+    station: makeStation(),
+    port: makePort(),
   } as Record<TileAtlasKey, PixelSprite>
 
   for (let index = 0; index < ROAD_COUNT; index += 1) {
     sprites[`road-${index}` as TileAtlasKey] = makeRoad(index)
+    sprites[`rail-${index}` as TileAtlasKey] = makeRail(index)
   }
 
   return sprites
@@ -514,6 +600,8 @@ export const TILES_NEEDING_GRASS: ReadonlySet<TileAtlasKey> = new Set([
   'clinic',
   'school',
   'factory',
+  'station',
+  'port',
 ])
 
 export function vacantTileKey(_x: number, _y: number): TileAtlasKey {
@@ -540,6 +628,8 @@ export const PROP_LAYOUT: Record<string, PropLayout> = {
   clinic: { width: 1.7, height: 2.25, originX: 0.5, originY: 0.94 },
   school: { width: 1.8, height: 2.3, originX: 0.5, originY: 0.94 },
   factory: { width: 1.9, height: 2.4, originX: 0.5, originY: 0.94 },
+  station: { width: 1.85, height: 2.25, originX: 0.5, originY: 0.94 },
+  port: { width: 1.9, height: 2.1, originX: 0.5, originY: 0.92 },
   tree: { width: 1.15, height: 1.55, originX: 0.5, originY: 0.96 },
   bush: { width: 1.1, height: 1.35, originX: 0.5, originY: 0.96 },
   flower: { width: 0.45, height: 0.45, originX: 0.5, originY: 0.78 },
@@ -547,6 +637,9 @@ export const PROP_LAYOUT: Record<string, PropLayout> = {
   water: { width: 1, height: 1, originX: 0.5, originY: 0.5 },
   river: { width: 1, height: 1, originX: 0.5, originY: 0.5 },
   road: { width: 1, height: 1, originX: 0.5, originY: 0.5 },
+  rail: { width: 1, height: 1, originX: 0.5, originY: 0.5 },
+  train: { width: 1.15, height: 0.7, originX: 0.5, originY: 0.7 },
+  boat: { width: 1.2, height: 0.7, originX: 0.5, originY: 0.7 },
 }
 
 export function decoKind(x: number, y: number): DecoKind | undefined {
@@ -589,6 +682,12 @@ export function buildingTileKey(type: TileType, connections = 0): TileAtlasKey |
       return 'school'
     case TileType.Factory:
       return 'factory'
+    case TileType.Station:
+      return 'station'
+    case TileType.Rail:
+      return `rail-${connections & 15}` as TileAtlasKey
+    case TileType.Port:
+      return 'port'
     default:
       return undefined
   }

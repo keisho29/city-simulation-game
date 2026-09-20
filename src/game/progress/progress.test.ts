@@ -50,6 +50,18 @@ describe('tech progress', () => {
     expect(canDiscover(progress, TechId.Industry)).toBe(true)
     addTechProgress(progress, TechId.Industry, 80)
     expect(isBuildingUnlocked('factory', progress)).toBe(true)
+    expect(isBuildingUnlocked('station', progress)).toBe(false)
+    expect(canDiscover(progress, TechId.Railways)).toBe(true)
+    addTechProgress(progress, TechId.Railways, 80)
+    expect(isBuildingUnlocked('station', progress)).toBe(true)
+    expect(isBuildingUnlocked('rail', progress)).toBe(true)
+  })
+
+  it('unlocks a port after logistics is found', () => {
+    const progress = createProgress()
+    expect(isBuildingUnlocked('port', progress)).toBe(false)
+    addTechProgress(progress, TechId.Logistics, 80)
+    expect(isBuildingUnlocked('port', progress)).toBe(true)
   })
 })
 
