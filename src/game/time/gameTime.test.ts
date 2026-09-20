@@ -9,9 +9,22 @@ describe('GameTime', () => {
     expect(time.month).toBe(1)
     expect(time.day).toBe(1)
     expect(time.speed).toBe(GameSpeed.X1)
-    expect(time.formatDate()).toBe('1700年 1月 1日')
+    expect(time.formatDate()).toBe('1700年 1月 1日（月）')
     expect(time.formatClock()).toBe('0時00分')
     expect(time.msPerDay).toBe(3 * 60 * 1000)
+    expect(time.weekday).toBe(1)
+    expect(time.isHoliday).toBe(false)
+  })
+
+  it('treats Sunday as a holiday', () => {
+    const time = new GameTime()
+    expect(time.update(time.msPerDay * 6)).toBe(true)
+    expect(time.formatDate()).toBe('1700年 1月 7日（日）')
+    expect(time.isHoliday).toBe(true)
+
+    time.update(time.msPerDay)
+    expect(time.formatDate()).toBe('1700年 1月 8日（月）')
+    expect(time.isHoliday).toBe(false)
   })
 
   it('reports hour and minute within a day', () => {

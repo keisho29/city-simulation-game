@@ -5,11 +5,22 @@ export function isWorkHours(hour: number): boolean {
   return hour >= WORK_START_HOUR && hour < WORK_END_HOUR
 }
 
-export function applySchedule(resident: Resident, hour: number): void {
+export function applySchedule(resident: Resident, hour: number, isHoliday = false): void {
   if (
     resident.state === ResidentState.SeekingHome ||
     resident.state === ResidentState.MovingIn
   ) {
+    return
+  }
+
+  if (
+    resident.state === ResidentState.MovingToShop ||
+    resident.state === ResidentState.Shopping
+  ) {
+    if (!isHoliday && isWorkHours(hour) && resident.workplace) {
+      resident.shopTarget = undefined
+      resident.state = ResidentState.MovingToWork
+    }
     return
   }
 
@@ -21,6 +32,16 @@ export function applySchedule(resident: Resident, hour: number): void {
       resident.state = resident.home
         ? ResidentState.MovingToHome
         : ResidentState.SeekingHome
+    }
+    return
+  }
+
+  if (isHoliday) {
+    if (
+      resident.state === ResidentState.Working ||
+      resident.state === ResidentState.MovingToWork
+    ) {
+      resident.state = ResidentState.MovingToHome
     }
     return
   }

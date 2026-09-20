@@ -2,27 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { WorldMap } from '../map/WorldMap.ts'
 import { TileType } from '../map/tile.ts'
 import { assignJobs } from './employment.ts'
-import { ResidentState, type Resident } from './resident.ts'
-
-function makeResident(id: string, home?: { x: number; y: number }): Resident {
-  return {
-    id,
-    name: id,
-    age: 28,
-    home,
-    workplace: undefined,
-    happiness: 50,
-    state: ResidentState.Home,
-    worldX: 0,
-    worldY: 0,
-  }
-}
+import { createResident } from './resident.ts'
 
 describe('assignJobs', () => {
   it('assigns a vacant farm as a workplace', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(2, 2, TileType.Farm)
-    const resident = makeResident('r1')
+    const resident = createResident({ id: 'r1' })
 
     assignJobs(map, [resident])
 
@@ -33,8 +19,8 @@ describe('assignJobs', () => {
   it('does not put two residents in the same workplace', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(1, 1, TileType.Shop)
-    const first = makeResident('r1')
-    const second = makeResident('r2')
+    const first = createResident({ id: 'r1' })
+    const second = createResident({ id: 'r2' })
 
     assignJobs(map, [first, second])
 
@@ -46,8 +32,8 @@ describe('assignJobs', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(1, 1, TileType.Farm)
     map.place(3, 3, TileType.Workshop)
-    const first = makeResident('r1')
-    const second = makeResident('r2')
+    const first = createResident({ id: 'r1' })
+    const second = createResident({ id: 'r2' })
 
     assignJobs(map, [first, second])
 
@@ -59,7 +45,7 @@ describe('assignJobs', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(4, 4, TileType.Farm)
     map.place(1, 0, TileType.Shop)
-    const resident = makeResident('r1', { x: 0, y: 0 })
+    const resident = createResident({ id: 'r1', home: { x: 0, y: 0 } })
 
     assignJobs(map, [resident])
 
@@ -69,7 +55,7 @@ describe('assignJobs', () => {
   it('clears the job when the workplace is removed', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(2, 2, TileType.Farm)
-    const resident = makeResident('r1')
+    const resident = createResident({ id: 'r1' })
     assignJobs(map, [resident])
 
     map.clear(2, 2)

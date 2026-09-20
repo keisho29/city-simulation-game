@@ -1,10 +1,12 @@
 import {
   DAYS_PER_MONTH,
   GameSpeed,
+  HOLIDAY_WEEKDAY,
   MS_PER_MONTH_AT_SPEED_1,
   START_DAY,
   START_MONTH,
   START_YEAR,
+  WEEKDAY_LABELS,
 } from '../constants.ts'
 
 export class GameTime {
@@ -44,6 +46,22 @@ export class GameTime {
     return this.elapsed
   }
 
+  get weekday(): number {
+    const daysSinceStart =
+      (this.year - START_YEAR) * 12 * DAYS_PER_MONTH +
+      (this.month - START_MONTH) * DAYS_PER_MONTH +
+      (this.day - START_DAY)
+    return (daysSinceStart + 1) % 7
+  }
+
+  get isHoliday(): boolean {
+    return this.weekday === HOLIDAY_WEEKDAY
+  }
+
+  get weekdayLabel(): string {
+    return WEEKDAY_LABELS[this.weekday] ?? WEEKDAY_LABELS[0]
+  }
+
   setSpeed(speed: GameSpeed): void {
     this.speed = speed
   }
@@ -81,7 +99,7 @@ export class GameTime {
   }
 
   formatDate(): string {
-    return `${this.year}年 ${this.month}月 ${this.day}日`
+    return `${this.year}年 ${this.month}月 ${this.day}日（${this.weekdayLabel}）`
   }
 
   formatClock(): string {

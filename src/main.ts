@@ -5,11 +5,12 @@ import { MainScene } from './game/scenes/MainScene.ts'
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'app',
-  backgroundColor: '#4a8a28',
+  backgroundColor: '#a8dc3c',
   scene: MainScene,
   render: {
-    antialias: true,
-    roundPixels: false,
+    antialias: false,
+    roundPixels: true,
+    pixelArt: true,
   },
   scale: {
     mode: Phaser.Scale.RESIZE,

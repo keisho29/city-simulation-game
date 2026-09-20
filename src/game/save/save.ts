@@ -1,7 +1,7 @@
 import { GameSpeed } from '../constants.ts'
 import type { Tile } from '../map/tile.ts'
 import { TileType } from '../map/tile.ts'
-import { ResidentState, type Resident, type TileRef } from '../residents/resident.ts'
+import { createResident, ResidentState, type Resident, type TileRef } from '../residents/resident.ts'
 
 export const SAVE_VERSION = 1
 export const SAVE_STORAGE_KEY = 'city-simulation-game.save'
@@ -131,17 +131,20 @@ function parseResident(raw: unknown): Resident | undefined {
     return undefined
   }
 
-  return {
+  return createResident({
     id: raw.id,
     name: raw.name,
     age: raw.age,
     home: parseTileRef(raw.home),
     workplace: parseTileRef(raw.workplace),
+    shopTarget: parseTileRef(raw.shopTarget),
     happiness: raw.happiness,
+    hunger: isFiniteNumber(raw.hunger) ? Math.max(0, Math.min(100, raw.hunger)) : undefined,
+    money: isFiniteNumber(raw.money) ? Math.max(0, raw.money) : undefined,
     state: raw.state as ResidentState,
     worldX: raw.worldX,
     worldY: raw.worldY,
-  }
+  })
 }
 
 function parseTileRef(raw: unknown): TileRef | undefined {

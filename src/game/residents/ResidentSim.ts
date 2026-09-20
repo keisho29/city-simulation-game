@@ -1,15 +1,17 @@
 import {
   INITIAL_RESIDENT_COUNT,
   RESIDENT_MOVE_SPEED,
+  type GameSpeed,
 } from '../constants.ts'
-import type { GameSpeed } from '../constants.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import { applySchedule } from './commute.ts'
 import { assignJobs } from './employment.ts'
 import { applyHappiness, averageHappiness } from './happiness.ts'
-import { assignHomes } from './housing.ts'
+import { assignHomes, relocateIfNeeded } from './housing.ts'
+import { gameHoursFromDelta, tickNeeds } from './needs.ts'
 import { residentAge, residentName } from './names.ts'
-import { ResidentState, type Resident, type TileRef } from './resident.ts'
+import { createResident, ResidentState, type Resident, type TileRef } from './resident.ts'
+import { finishShopping, maybeStartShopping } from './shopping.ts'
 
 const ARRIVE_DISTANCE = 2
 
@@ -20,7 +22,7 @@ export class ResidentSim {
   constructor(map: WorldMap, residents?: Resident[]) {
     this.map = map
     if (residents) {
-      this.residents = residents
+      this.residents = residents.map((resident) => createResident(resident))
       return
     }
 
@@ -28,13 +30,13 @@ export class ResidentSim {
     this.residents = Array.from({ length: INITIAL_RESIDENT_COUNT }, (_, index) => {
       const angle = (index / INITIAL_RESIDENT_COUNT) * Math.PI * 2
       const radius = map.tileSize * 0.8
-      return createResident(
-        `resident-${index + 1}`,
-        residentName(index),
-        residentAge(index),
-        spawn.x + Math.cos(angle) * radius,
-        spawn.y + Math.sin(angle) * radius,
-      )
+      return createResident({
+        id: `resident-${index + 1}`,
+        name: residentName(index),
+        age: residentAge(index),
+        worldX: spawn.x + Math.cos(angle) * radius,
+        worldY: spawn.y + Math.sin(angle) * radius,
+      })
     })
     this.refreshHousing()
     this.refreshJobs()
@@ -42,6 +44,7 @@ export class ResidentSim {
 
   refreshHousing(): void {
     assignHomes(this.map, this.residents)
+    relocateIfNeeded(this.map, this.residents)
     applyHappiness(this.residents)
   }
 
@@ -62,17 +65,23 @@ export class ResidentSim {
     return averageHappiness(this.residents)
   }
 
-  update(deltaMs: number, speed: GameSpeed, hour: number): void {
+  update(deltaMs: number, speed: GameSpeed, hour: number, isHoliday = false): void {
     if (speed === 0 || deltaMs <= 0) {
       return
     }
 
     const step = RESIDENT_MOVE_SPEED * (speed / 1) * (deltaMs / 1000)
+    const gameHours = gameHoursFromDelta(deltaMs, speed)
 
     for (const resident of this.residents) {
-      applySchedule(resident, hour)
+      tickNeeds(resident, this.map, gameHours)
+      applySchedule(resident, hour, isHoliday)
+      maybeStartShopping(resident, this.map, hour, isHoliday)
+      relocateIfNeeded(this.map, [resident])
       this.walkTowardGoal(resident, step)
     }
+
+    applyHappiness(this.residents, { isHoliday })
   }
 
   private walkTowardGoal(resident: Resident, step: number): void {
@@ -90,6 +99,9 @@ export class ResidentSim {
       resident.worldX = target.x
       resident.worldY = target.y
       resident.state = goal.arriveState
+      if (goal.arriveState === ResidentState.Shopping) {
+        finishShopping(resident)
+      }
       return
     }
 
@@ -112,26 +124,14 @@ export class ResidentSim {
       return { tile: resident.workplace, arriveState: ResidentState.Working }
     }
 
-    return undefined
-  }
-}
+    if (
+      (resident.state === ResidentState.MovingToShop ||
+        resident.state === ResidentState.Shopping) &&
+      resident.shopTarget
+    ) {
+      return { tile: resident.shopTarget, arriveState: ResidentState.Shopping }
+    }
 
-function createResident(
-  id: string,
-  name: string,
-  age: number,
-  worldX: number,
-  worldY: number,
-): Resident {
-  return {
-    id,
-    name,
-    age,
-    home: undefined,
-    workplace: undefined,
-    happiness: 50,
-    state: ResidentState.SeekingHome,
-    worldX,
-    worldY,
+    return undefined
   }
 }

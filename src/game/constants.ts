@@ -2,8 +2,16 @@ export const MAP_WIDTH = 50
 export const MAP_HEIGHT = 50
 export const TILE_SIZE = 32
 
-export const MIN_CAMERA_ZOOM = 0.25
-export const MAX_CAMERA_ZOOM = 2.5
+export const MIN_CAMERA_ZOOM = 1.25
+export const MAX_CAMERA_ZOOM = 6
+export const ZOOM_STEP = 0.25
+/** 起動時に画面へ収めるマス数。地図全体はズームアウトで見られる。 */
+export const START_VIEW_TILES = 10
+
+export function snapZoom(zoom: number): number {
+  const clamped = Math.min(MAX_CAMERA_ZOOM, Math.max(MIN_CAMERA_ZOOM, zoom))
+  return Math.round(clamped / ZOOM_STEP) * ZOOM_STEP
+}
 
 export const START_YEAR = 1700
 export const START_MONTH = 1
@@ -28,6 +36,9 @@ export const HOUSE_CAPACITY = 1
 export const JOB_CAPACITY = 1
 export const INITIAL_RESIDENT_COUNT = 20
 export const INITIAL_FUNDS = 1000
+/** 開発用。完了したら false にして通常の資金消費に戻す。 */
+export const DEV_FREEZE_FUNDS = true
+export const DEV_FIXED_FUNDS = 9000
 export const RESIDENT_MOVE_SPEED = 48
 
 export const HAPPINESS_BASE = 50
@@ -36,6 +47,12 @@ export const HAPPINESS_NO_JOB = -10
 export const HAPPINESS_NO_HOME = -15
 export const HAPPINESS_SHORT_COMMUTE = 10
 export const HAPPINESS_LONG_COMMUTE = -10
+export const HAPPINESS_WELL_FED = 8
+export const HAPPINESS_HUNGRY = -12
+export const HAPPINESS_STARVING = -20
+export const HAPPINESS_COMFORTABLE = 5
+export const HAPPINESS_BROKE = -10
+export const HAPPINESS_HOLIDAY_REST = 5
 export const SHORT_COMMUTE_DISTANCE = 5
 export const LONG_COMMUTE_DISTANCE = 15
 
@@ -43,4 +60,24 @@ export const LONG_COMMUTE_DISTANCE = 15
 export const WORK_START_HOUR = 8
 /** この時刻（含む）から帰宅する。 */
 export const WORK_END_HOUR = 17
+
+export const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'] as const
+export const HOLIDAY_WEEKDAY = 0
+
+export const INITIAL_HUNGER = 35
+export const INITIAL_RESIDENT_MONEY = 24
+export const HUNGER_PER_GAME_HOUR = 2.5
+export const HUNGER_WORK_MULTIPLIER = 1.4
+export const HUNGER_WELL_FED = 25
+export const HUNGER_HUNGRY = 60
+export const HUNGER_STARVING = 85
+export const HUNGER_SHOP_THRESHOLD = 40
+export const SHOP_PRICE = 12
+export const SHOP_HUNGER_RELIEF = 55
+export const MONEY_COMFORTABLE = 40
+export const WAGE_FARM_PER_HOUR = 3
+export const WAGE_SHOP_PER_HOUR = 4
+export const WAGE_WORKSHOP_PER_HOUR = 5
+export const MOVE_COMMUTE_THRESHOLD = 12
+export const MOVE_MIN_IMPROVEMENT = 3
 

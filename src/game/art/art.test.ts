@@ -6,6 +6,7 @@ import {
   TILE_ATLAS_ORDER,
   TILE_SPRITES,
   buildingTileKey,
+  decoKind,
   vacantTileKey,
   validateTileArt,
 } from './tileArt.ts'
@@ -36,14 +37,16 @@ describe('tile art', () => {
     expect(buildingTileKey(TileType.Vacant)).toBeUndefined()
   })
 
-  it('covers vacant land with grass or scenery', () => {
-    const keys = Array.from({ length: 40 }, (_, i) => vacantTileKey(i % 10, Math.floor(i / 10) + 4))
+  it('keeps vacant ground as grass, with optional scenery on top', () => {
+    expect(vacantTileKey(3, 8)).toBe('grass-base')
+    expect(vacantTileKey(9, 2)).toBe('grass-base')
+    const kinds = Array.from({ length: 80 }, (_, i) => decoKind(i % 10, Math.floor(i / 10)))
+    expect(kinds.some((kind) => kind === 'tree')).toBe(true)
     expect(
-      keys.every(
-        (key) => key.startsWith('grass-') || key === 'tree' || key === 'bush' || key === 'flower',
+      kinds.every(
+        (kind) => kind === undefined || kind === 'tree' || kind === 'bush' || kind === 'flower',
       ),
     ).toBe(true)
-    expect(keys.some((key) => key.startsWith('grass-'))).toBe(true)
   })
 })
 

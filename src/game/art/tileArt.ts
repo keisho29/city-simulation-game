@@ -82,7 +82,7 @@ function rnd(seed: number, salt: number): number {
 }
 
 function makeGrass(kind: 'base' | 'bright' | 'dark'): PixelSprite {
-  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE, '1')
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE, kind === 'dark' ? '2' : '1')
   const seed = kind === 'bright' ? 11 : kind === 'dark' ? 23 : 7
 
   for (let i = 0; i < 5; i += 1) {
@@ -98,6 +98,8 @@ function makeGrass(kind: 'base' | 'bright' | 'dark'): PixelSprite {
     canvas.set(x, y, i % 3 === 0 ? '5' : '2')
   }
 
+  canvas.fillRect(0, 0, TILE_ART_SIZE, 1, '4')
+  canvas.fillRect(0, 0, 1, TILE_ART_SIZE, '4')
   return canvas.toSprite(LAND)
 }
 
@@ -143,20 +145,8 @@ function makeRoad(mask: number): PixelSprite {
     }
   }
 
-  const northSouth = (mask & 1) !== 0 || (mask & 4) !== 0
-  const eastWest = (mask & 2) !== 0 || (mask & 8) !== 0
-  if (northSouth && !eastWest) {
-    for (let y = 2; y < TILE_ART_SIZE; y += 6) {
-      canvas.fillRect(15, y, 2, 3, 'L')
-    }
-  } else if (eastWest && !northSouth) {
-    for (let x = 2; x < TILE_ART_SIZE; x += 6) {
-      canvas.fillRect(x, 15, 3, 2, 'L')
-    }
-  } else if (mask === 0) {
-    canvas.fillRect(14, 14, 4, 4, 'J')
-  }
-
+  canvas.fillRect(0, 0, TILE_ART_SIZE, 1, 'j')
+  canvas.fillRect(0, 0, 1, TILE_ART_SIZE, 'j')
   return canvas.toSprite(LAND)
 }
 
@@ -352,7 +342,6 @@ export const TILES_NEEDING_GRASS: ReadonlySet<TileAtlasKey> = new Set([
   'bush',
   'tree',
   'rock',
-  'tuft',
   'stump',
   'house',
   'farm',
@@ -360,20 +349,50 @@ export const TILES_NEEDING_GRASS: ReadonlySet<TileAtlasKey> = new Set([
   'workshop',
 ])
 
-export function vacantTileKey(x: number, y: number): TileAtlasKey {
+export function vacantTileKey(_x: number, _y: number): TileAtlasKey {
+  return 'grass-base'
+}
+
+export type DecoKind = 'tree' | 'bush' | 'flower'
+
+export type PropLayout = {
+  width: number
+  height: number
+  originX: number
+  originY: number
+}
+
+export const PROP_LAYOUT: Record<string, PropLayout> = {
+  house: { width: 1.75, height: 2.3, originX: 0.5, originY: 0.94 },
+  shop: { width: 1.8, height: 2.2, originX: 0.5, originY: 0.94 },
+  workshop: { width: 1.75, height: 2.3, originX: 0.5, originY: 0.94 },
+  farm: { width: 1.25, height: 1.2, originX: 0.5, originY: 0.84 },
+  tree: { width: 1.4, height: 2.05, originX: 0.5, originY: 0.96 },
+  bush: { width: 1.25, height: 1.85, originX: 0.5, originY: 0.96 },
+  flower: { width: 0.45, height: 0.45, originX: 0.5, originY: 0.78 },
+  road: { width: 1, height: 1, originX: 0.5, originY: 0.5 },
+}
+
+export function decoKind(x: number, y: number): DecoKind | undefined {
   const deco = hash32(x * 73856093 + y * 19349663 + 17)
-  if (deco % 17 === 0) {
+  if (deco % 23 === 0) {
     return 'tree'
   }
-  if (deco % 29 === 0) {
+  if (deco % 31 === 0) {
     return 'bush'
   }
-  if (deco % 23 === 0) {
+  if (deco % 9 === 0) {
     return 'flower'
   }
+  return undefined
+}
 
-  const grasses = ['grass-base', 'grass-bright', 'grass-dark'] as const
-  return grasses[hash32(x * 9181 + y * 5279) % grasses.length] ?? 'grass-base'
+export function decoOffset(x: number, y: number): { x: number; y: number } {
+  const n = hash32(x * 13 + y * 29 + 91)
+  return {
+    x: (n % 17) - 8,
+    y: ((n >>> 4) % 11) - 5,
+  }
 }
 
 export function buildingTileKey(type: TileType, connections = 0): TileAtlasKey | undefined {

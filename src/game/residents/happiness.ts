@@ -1,14 +1,29 @@
 import {
   HAPPINESS_BASE,
+  HAPPINESS_BROKE,
+  HAPPINESS_COMFORTABLE,
   HAPPINESS_HAS_JOB,
+  HAPPINESS_HOLIDAY_REST,
+  HAPPINESS_HUNGRY,
   HAPPINESS_LONG_COMMUTE,
   HAPPINESS_NO_HOME,
   HAPPINESS_NO_JOB,
   HAPPINESS_SHORT_COMMUTE,
+  HAPPINESS_STARVING,
+  HAPPINESS_WELL_FED,
+  HUNGER_HUNGRY,
+  HUNGER_STARVING,
+  HUNGER_WELL_FED,
   LONG_COMMUTE_DISTANCE,
+  MONEY_COMFORTABLE,
+  SHOP_PRICE,
   SHORT_COMMUTE_DISTANCE,
 } from '../constants.ts'
-import type { Resident } from './resident.ts'
+import { ResidentState, type Resident } from './resident.ts'
+
+export type HappinessContext = {
+  isHoliday?: boolean
+}
 
 export function commuteDistance(resident: Resident): number | undefined {
   if (!resident.home || !resident.workplace) {
@@ -21,7 +36,10 @@ export function commuteDistance(resident: Resident): number | undefined {
   )
 }
 
-export function residentHappiness(resident: Resident): number {
+export function residentHappiness(
+  resident: Resident,
+  context: HappinessContext = {},
+): number {
   let happiness = HAPPINESS_BASE
 
   if (resident.home) {
@@ -41,12 +59,38 @@ export function residentHappiness(resident: Resident): number {
     happiness += resident.workplace ? HAPPINESS_HAS_JOB : HAPPINESS_NO_JOB
   }
 
+  if (resident.hunger >= HUNGER_STARVING) {
+    happiness += HAPPINESS_STARVING
+  } else if (resident.hunger >= HUNGER_HUNGRY) {
+    happiness += HAPPINESS_HUNGRY
+  } else if (resident.hunger <= HUNGER_WELL_FED) {
+    happiness += HAPPINESS_WELL_FED
+  }
+
+  if (resident.money < SHOP_PRICE) {
+    happiness += HAPPINESS_BROKE
+  } else if (resident.money >= MONEY_COMFORTABLE) {
+    happiness += HAPPINESS_COMFORTABLE
+  }
+
+  if (
+    context.isHoliday &&
+    (resident.state === ResidentState.Home ||
+      resident.state === ResidentState.Shopping ||
+      resident.state === ResidentState.MovingToShop)
+  ) {
+    happiness += HAPPINESS_HOLIDAY_REST
+  }
+
   return Math.max(0, Math.min(100, happiness))
 }
 
-export function applyHappiness(residents: Resident[]): void {
+export function applyHappiness(
+  residents: Resident[],
+  context: HappinessContext = {},
+): void {
   for (const resident of residents) {
-    resident.happiness = residentHappiness(resident)
+    resident.happiness = residentHappiness(resident, context)
   }
 }
 

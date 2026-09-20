@@ -5,10 +5,10 @@ import { assertSprite, type PixelSprite } from './pixelTexture.ts'
 
 export const RESIDENT_ART_WIDTH = 12
 export const RESIDENT_ART_HEIGHT = 16
-export const RESIDENT_FRAME_WIDTH = 64
-export const RESIDENT_FRAME_HEIGHT = 80
-export const RESIDENT_DISPLAY_WIDTH = 20
-export const RESIDENT_DISPLAY_HEIGHT = 26
+export const RESIDENT_FRAME_WIDTH = 160
+export const RESIDENT_FRAME_HEIGHT = 256
+export const RESIDENT_DISPLAY_WIDTH = 18
+export const RESIDENT_DISPLAY_HEIGHT = 28
 
 export const RESIDENT_ATLAS_ORDER = [
   'farmer',

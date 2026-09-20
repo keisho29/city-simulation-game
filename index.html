@@ -3,6 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap"
+      rel="stylesheet"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>都市シミュレーション</title>
   </head>
@@ -10,83 +16,43 @@
     <div id="app"></div>
 
     <header id="top-bar">
-      <div class="time-chip">
-        <p class="region-name">東京モデル地域</p>
-        <p class="hud-date" id="hud-date">1700年 1月 1日</p>
-        <div class="time-row">
-          <p class="hud-clock" id="hud-clock">00:00</p>
-          <nav id="speed-menu" aria-label="ゲーム速度">
-            <button type="button" data-speed="0" aria-label="停止" aria-pressed="false" title="停止">
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <rect x="3" y="2" width="4" height="12" rx="1" />
-                <rect x="9" y="2" width="4" height="12" rx="1" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              data-speed="1"
-              class="is-active"
-              aria-label="×1"
-              aria-pressed="true"
-              title="×1"
-            >
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M4 2.5v11l9-5.5-9-5.5Z" />
-              </svg>
-            </button>
-            <button type="button" data-speed="2" aria-label="×2" aria-pressed="false" title="×2">
-              <svg viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M2 3v10l6-5-6-5Zm7 0v10l6-5-6-5Z" />
-              </svg>
-            </button>
-            <button type="button" data-speed="5" aria-label="×5" aria-pressed="false" title="×5">
-              <svg viewBox="0 0 18 16" aria-hidden="true">
-                <path d="M1 3v10l5.5-5L1 3Zm6 0v10l5.5-5L7 3Zm6 0v10l5.5-5L13 3Z" />
-              </svg>
-            </button>
-          </nav>
-        </div>
+      <div class="hud-date-bar">
+        <span class="hud-crest" aria-hidden="true"></span>
+        <p class="hud-date" id="hud-date">1700年 1月 1日（月）</p>
+        <p class="hud-clock" id="hud-clock">00:00</p>
+        <nav id="speed-menu" aria-label="ゲーム速度">
+          <button type="button" data-speed="0" aria-label="停止" aria-pressed="false" title="停止">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <rect x="3" y="2" width="4" height="12" rx="1" />
+              <rect x="9" y="2" width="4" height="12" rx="1" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            data-speed="1"
+            class="is-active"
+            aria-label="×1"
+            aria-pressed="true"
+            title="×1"
+          >
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4 2.5v11l9-5.5-9-5.5Z" />
+            </svg>
+          </button>
+          <button type="button" data-speed="2" aria-label="×2" aria-pressed="false" title="×2">
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M2 3v10l6-5-6-5Zm7 0v10l6-5-6-5Z" />
+            </svg>
+          </button>
+          <button type="button" data-speed="5" aria-label="×5" aria-pressed="false" title="×5">
+            <svg viewBox="0 0 18 16" aria-hidden="true">
+              <path d="M1 3v10l5.5-5L1 3Zm6 0v10l5.5-5L7 3Zm6 0v10l5.5-5L13 3Z" />
+            </svg>
+          </button>
+        </nav>
       </div>
-
-      <div class="stat-cards">
-        <article class="stat-card stat-card-pop">
-          <span class="stat-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <circle cx="12" cy="8" r="3.2" />
-              <path d="M6 19c.6-3.2 3-5 6-5s5.4 1.8 6 5" />
-            </svg>
-          </span>
-          <div class="stat-copy">
-            <p class="stat-label">人口</p>
-            <p class="stat-value" id="hud-population">20</p>
-          </div>
-        </article>
-        <article class="stat-card stat-card-funds">
-          <span class="stat-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="8" />
-              <path d="M12 7.5v9M9.5 9.5c.6-1 1.5-1.5 2.5-1.5s2 .6 2.5 1.5M9.5 14.5c.6 1 1.5 1.5 2.5 1.5s2-.6 2.5-1.5" />
-            </svg>
-          </span>
-          <div class="stat-copy">
-            <p class="stat-label">資金</p>
-            <p class="stat-value" id="hud-funds">1,000</p>
-          </div>
-        </article>
-        <article class="stat-card stat-card-happy">
-          <span class="stat-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="8" />
-              <circle cx="9" cy="10" r="1.1" />
-              <circle cx="15" cy="10" r="1.1" />
-              <path d="M8.5 14c1 1.6 2.4 2.4 3.5 2.4S14.5 15.6 15.5 14" />
-            </svg>
-          </span>
-          <div class="stat-copy">
-            <p class="stat-label">市民の満足度</p>
-            <p class="stat-value" id="hud-happiness">25%</p>
-          </div>
-        </article>
+      <div class="hud-funds-bar">
+        <p class="stat-value"><span id="hud-funds">9,000</span><span class="stat-unit">両</span></p>
       </div>
     </header>
 
@@ -159,6 +125,14 @@
         <h2>都市の統計</h2>
         <dl class="stat-list">
           <div>
+            <dt>人口</dt>
+            <dd id="hud-population">20</dd>
+          </div>
+          <div>
+            <dt>満足度</dt>
+            <dd id="hud-happiness">25%</dd>
+          </div>
+          <div>
             <dt>入居</dt>
             <dd id="hud-housed">0/20</dd>
           </div>
@@ -169,6 +143,55 @@
           <div>
             <dt>マップ</dt>
             <dd>50 × 50</dd>
+          </div>
+          <div id="hud-funds-note" hidden>
+            <dt>資金</dt>
+            <dd>開発用・固定</dd>
+          </div>
+        </dl>
+      </section>
+      <section class="panel-card" id="resident-panel">
+        <div class="panel-heading">
+          <h2>住民</h2>
+          <button type="button" id="resident-close" hidden>閉じる</button>
+        </div>
+        <p class="hud-hint" id="resident-empty">見るを選んで、住民をクリックしてください。</p>
+        <dl class="stat-list" id="resident-detail" hidden>
+          <div>
+            <dt>名前</dt>
+            <dd id="resident-name"></dd>
+          </div>
+          <div>
+            <dt>年齢</dt>
+            <dd id="resident-age"></dd>
+          </div>
+          <div>
+            <dt>状態</dt>
+            <dd id="resident-state"></dd>
+          </div>
+          <div>
+            <dt>自宅</dt>
+            <dd id="resident-home"></dd>
+          </div>
+          <div>
+            <dt>仕事</dt>
+            <dd id="resident-job"></dd>
+          </div>
+          <div>
+            <dt>勤務先</dt>
+            <dd id="resident-workplace"></dd>
+          </div>
+          <div>
+            <dt>空腹</dt>
+            <dd id="resident-hunger"></dd>
+          </div>
+          <div>
+            <dt>所持金</dt>
+            <dd id="resident-money"></dd>
+          </div>
+          <div>
+            <dt>幸福度</dt>
+            <dd id="resident-happiness"></dd>
           </div>
         </dl>
       </section>

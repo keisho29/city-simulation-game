@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { GameSpeed } from '../constants.ts'
 import { WorldMap } from '../map/WorldMap.ts'
 import { TileType } from '../map/tile.ts'
-import { ResidentState } from '../residents/resident.ts'
 import { GameTime } from '../time/gameTime.ts'
 import { SAVE_STORAGE_KEY, loadSnapshot, parseSnapshot, writeSnapshot } from './save.ts'
+import { ResidentState } from '../residents/resident.ts'
 
 function sampleSnapshot() {
   return {
@@ -31,6 +31,8 @@ function sampleSnapshot() {
         home: { x: 0, y: 0 },
         workplace: { x: 1, y: 0 },
         happiness: 80,
+        hunger: 44,
+        money: 31,
         state: ResidentState.Working,
         worldX: 48,
         worldY: 16,
@@ -45,7 +47,19 @@ describe('parseSnapshot', () => {
     expect(parsed?.year).toBe(1701)
     expect(parsed?.funds).toBe(870)
     expect(parsed?.residents[0]?.name).toBe('太助')
+    expect(parsed?.residents[0]?.hunger).toBe(44)
+    expect(parsed?.residents[0]?.money).toBe(31)
     expect(parsed?.tiles[0]?.occupantIds).toEqual(['resident-1'])
+  })
+
+  it('fills hunger and money when an older save omits them', () => {
+    const raw = sampleSnapshot()
+    const resident = raw.residents[0] as { hunger?: number; money?: number }
+    delete resident.hunger
+    delete resident.money
+    const parsed = parseSnapshot(raw)
+    expect(parsed?.residents[0]?.hunger).toBe(35)
+    expect(parsed?.residents[0]?.money).toBe(24)
   })
 
   it('rejects a save with the wrong version', () => {
@@ -91,7 +105,7 @@ describe('restore helpers', () => {
       elapsedMs: time.msPerDay / 2,
       speed: GameSpeed.Pause,
     })
-    expect(time.formatDate()).toBe('1702年 4月 8日')
+    expect(time.formatDate()).toBe('1702年 4月 8日（土）')
     expect(time.formatClock()).toBe('12時00分')
     expect(time.speed).toBe(GameSpeed.Pause)
   })

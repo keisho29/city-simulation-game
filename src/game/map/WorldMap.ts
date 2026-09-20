@@ -162,6 +162,67 @@ export class WorldMap {
     return true
   }
 
+  vacateOccupant(x: number, y: number, residentId: string): void {
+    const tile = this.getTile(x, y)
+    if (!tile) {
+      return
+    }
+
+    tile.occupantIds = tile.occupantIds.filter((id) => id !== residentId)
+  }
+
+  findNearestShop(near?: { x: number; y: number }): { x: number; y: number } | undefined {
+    let best: { x: number; y: number; distance: number } | undefined
+
+    for (let y = 0; y < this.height; y += 1) {
+      for (let x = 0; x < this.width; x += 1) {
+        if (this.getTile(x, y)?.type !== TileType.Shop) {
+          continue
+        }
+
+        const distance = near ? Math.abs(x - near.x) + Math.abs(y - near.y) : 0
+        if (!best || distance < best.distance) {
+          best = { x, y, distance }
+          if (!near) {
+            return { x, y }
+          }
+        }
+      }
+    }
+
+    return best ? { x: best.x, y: best.y } : undefined
+  }
+
+  findCloserVacantHouse(
+    work: { x: number; y: number },
+    currentHome: { x: number; y: number },
+    minImprovement: number,
+  ): { x: number; y: number } | undefined {
+    const currentDistance = Math.abs(currentHome.x - work.x) + Math.abs(currentHome.y - work.y)
+    let best: { x: number; y: number; distance: number } | undefined
+
+    for (let y = 0; y < this.height; y += 1) {
+      for (let x = 0; x < this.width; x += 1) {
+        if (x === currentHome.x && y === currentHome.y) {
+          continue
+        }
+        if (!this.isHouseVacant(x, y)) {
+          continue
+        }
+
+        const distance = Math.abs(x - work.x) + Math.abs(y - work.y)
+        if (currentDistance - distance < minImprovement) {
+          continue
+        }
+        if (!best || distance < best.distance) {
+          best = { x, y, distance }
+        }
+      }
+    }
+
+    return best ? { x: best.x, y: best.y } : undefined
+  }
+
   tileCenter(x: number, y: number): { x: number; y: number } {
     return {
       x: (x + 0.5) * this.tileSize,

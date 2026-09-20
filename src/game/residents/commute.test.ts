@@ -4,22 +4,7 @@ import { TileType } from '../map/tile.ts'
 import { WorldMap } from '../map/WorldMap.ts'
 import { applySchedule, isWorkHours } from './commute.ts'
 import { ResidentSim } from './ResidentSim.ts'
-import { ResidentState, type Resident } from './resident.ts'
-
-function makeResident(overrides: Partial<Resident> = {}): Resident {
-  return {
-    id: 'r1',
-    name: '太助',
-    age: 28,
-    home: { x: 1, y: 1 },
-    workplace: { x: 3, y: 1 },
-    happiness: 50,
-    state: ResidentState.Home,
-    worldX: 0,
-    worldY: 0,
-    ...overrides,
-  }
-}
+import { createResident, ResidentState } from './resident.ts'
 
 describe('isWorkHours', () => {
   it('is true from 8:00 until 17:00', () => {
@@ -32,37 +17,58 @@ describe('isWorkHours', () => {
 
 describe('applySchedule', () => {
   it('leaves for work at 8:00 when housed and employed', () => {
-    const resident = makeResident({ state: ResidentState.Home })
+    const resident = createResident({
+      home: { x: 1, y: 1 },
+      workplace: { x: 3, y: 1 },
+      state: ResidentState.Home,
+    })
     applySchedule(resident, 8)
     expect(resident.state).toBe(ResidentState.MovingToWork)
   })
 
   it('stays home before work hours', () => {
-    const resident = makeResident({ state: ResidentState.Home })
+    const resident = createResident({
+      home: { x: 1, y: 1 },
+      workplace: { x: 3, y: 1 },
+      state: ResidentState.Home,
+    })
     applySchedule(resident, 7)
     expect(resident.state).toBe(ResidentState.Home)
   })
 
   it('leaves work at 17:00', () => {
-    const resident = makeResident({ state: ResidentState.Working })
+    const resident = createResident({
+      home: { x: 1, y: 1 },
+      workplace: { x: 3, y: 1 },
+      state: ResidentState.Working,
+    })
     applySchedule(resident, 17)
     expect(resident.state).toBe(ResidentState.MovingToHome)
   })
 
   it('keeps working during work hours', () => {
-    const resident = makeResident({ state: ResidentState.Working })
+    const resident = createResident({
+      home: { x: 1, y: 1 },
+      workplace: { x: 3, y: 1 },
+      state: ResidentState.Working,
+    })
     applySchedule(resident, 12)
     expect(resident.state).toBe(ResidentState.Working)
   })
 
   it('does not commute while still moving in', () => {
-    const resident = makeResident({ state: ResidentState.MovingIn })
+    const resident = createResident({
+      home: { x: 1, y: 1 },
+      workplace: { x: 3, y: 1 },
+      state: ResidentState.MovingIn,
+    })
     applySchedule(resident, 8)
     expect(resident.state).toBe(ResidentState.MovingIn)
   })
 
   it('does not leave if there is no workplace', () => {
-    const resident = makeResident({
+    const resident = createResident({
+      home: { x: 1, y: 1 },
       workplace: undefined,
       state: ResidentState.Home,
     })
@@ -71,11 +77,32 @@ describe('applySchedule', () => {
   })
 
   it('sends an unemployed worker home', () => {
-    const resident = makeResident({
+    const resident = createResident({
+      home: { x: 1, y: 1 },
       workplace: undefined,
       state: ResidentState.Working,
     })
     applySchedule(resident, 12)
+    expect(resident.state).toBe(ResidentState.MovingToHome)
+  })
+
+  it('stays home on a holiday instead of going to work', () => {
+    const resident = createResident({
+      home: { x: 1, y: 1 },
+      workplace: { x: 3, y: 1 },
+      state: ResidentState.Home,
+    })
+    applySchedule(resident, 8, true)
+    expect(resident.state).toBe(ResidentState.Home)
+  })
+
+  it('sends a worker home when a holiday begins', () => {
+    const resident = createResident({
+      home: { x: 1, y: 1 },
+      workplace: { x: 3, y: 1 },
+      state: ResidentState.Working,
+    })
+    applySchedule(resident, 10, true)
     expect(resident.state).toBe(ResidentState.MovingToHome)
   })
 })
@@ -91,6 +118,8 @@ describe('commute walking', () => {
     resident.worldX = home.x
     resident.worldY = home.y
     resident.state = ResidentState.Home
+    resident.hunger = 10
+    resident.money = 0
 
     sim.update(16, GameSpeed.X1, 8)
     expect(resident.state).toBe(ResidentState.MovingToWork)

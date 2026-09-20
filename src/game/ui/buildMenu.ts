@@ -42,7 +42,7 @@ export function bindBuildMenu(handlers: BuildMenuHandlers): void {
       return
     }
 
-    hint.textContent = '矢印キー / 右ドラッグで移動'
+    hint.textContent = '住民をクリックして詳細を見る'
   }
 
   const setTool = (tool: BuildTool) => {
