@@ -43,6 +43,24 @@ describe('assignHomes', () => {
     expect(second.home).toEqual({ x: 3, y: 3 })
   })
 
+  it('lets a second resident move in after the house grows', () => {
+    const map = new WorldMap(5, 5, 32)
+    map.place(1, 1, TileType.House)
+    const first = createResident({ id: 'r1' })
+    const second = createResident({ id: 'r2' })
+    assignHomes(map, [first, second])
+    expect(second.home).toBeUndefined()
+
+    const tile = map.getTile(1, 1)
+    if (tile) {
+      tile.level = 2
+    }
+    assignHomes(map, [first, second])
+
+    expect(second.home).toEqual({ x: 1, y: 1 })
+    expect(map.getTile(1, 1)?.occupantIds).toEqual(['r1', 'r2'])
+  })
+
   it('clears the home when the house is removed', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(2, 2, TileType.House)

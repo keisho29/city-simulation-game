@@ -28,7 +28,15 @@ describe('Treasury', () => {
     expect(treasury.canAfford(99_999)).toBe(true)
     expect(treasury.spend(150)).toBe(true)
     expect(treasury.funds).toBe(DEV_FIXED_FUNDS)
+    treasury.receive(40)
+    expect(treasury.funds).toBe(DEV_FIXED_FUNDS)
     treasury.applyLoadedFunds(810)
     expect(treasury.funds).toBe(DEV_FIXED_FUNDS)
+  })
+
+  it('receives tax when funds are not frozen', () => {
+    const treasury = new Treasury(1000, false)
+    treasury.receive(25)
+    expect(treasury.funds).toBe(1025)
   })
 })

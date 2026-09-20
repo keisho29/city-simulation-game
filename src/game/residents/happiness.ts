@@ -94,7 +94,7 @@ export function applyHappiness(
   }
 }
 
-export function averageHappiness(residents: Resident[]): number {
+export function averageHappiness(residents: readonly Resident[]): number {
   if (residents.length === 0) {
     return 0
   }

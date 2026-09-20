@@ -88,19 +88,10 @@ export function inspectResident(
   residents: readonly Resident[],
   worldX: number,
   worldY: number,
-  tile: TileRef | undefined,
+  _tile: TileRef | undefined,
   radius = RESIDENT_PICK_RADIUS,
 ): Resident | undefined {
-  const nearest = pickNearestResident(residents, worldX, worldY, radius)
-  if (nearest) {
-    return nearest
-  }
-
-  if (!tile) {
-    return undefined
-  }
-
-  return pickResidentOnTile(residents, tile)
+  return pickNearestResident(residents, worldX, worldY, radius)
 }
 
 export function residentDetailView(

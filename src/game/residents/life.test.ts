@@ -16,16 +16,20 @@ describe('needs', () => {
     expect(resident.hunger).toBeGreaterThan(20)
   })
 
-  it('pays a wage while the resident is working', () => {
+  it('pays a higher wage in a grown workplace', () => {
     const map = new WorldMap(3, 3, 32)
     map.place(1, 1, TileType.Farm)
+    const tile = map.getTile(1, 1)
+    if (tile) {
+      tile.level = 3
+    }
     const resident = createResident({
       workplace: { x: 1, y: 1 },
       state: ResidentState.Working,
       money: 10,
     })
     tickNeeds(resident, map, 2)
-    expect(resident.money).toBeCloseTo(10 + WAGE_FARM_PER_HOUR * 2)
+    expect(resident.money).toBeCloseTo(10 + WAGE_FARM_PER_HOUR * 1.5 * 2)
   })
 
   it('spends money and lowers hunger when buying food', () => {
@@ -104,6 +108,7 @@ describe('shopping', () => {
     expect(resident.money).toBeLessThan(moneyBefore)
     expect(resident.hunger).toBeLessThan(70)
     expect(resident.state).toBe(ResidentState.Home)
+    expect(map.getTile(4, 0)?.xp).toBeGreaterThan(0)
     const home = map.tileCenter(0, 0)
     expect(resident.worldX).toBe(home.x)
     expect(resident.worldY).toBe(home.y)

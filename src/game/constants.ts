@@ -81,3 +81,24 @@ export const WAGE_WORKSHOP_PER_HOUR = 5
 export const MOVE_COMMUTE_THRESHOLD = 12
 export const MOVE_MIN_IMPROVEMENT = 3
 
+export const MAX_BUILDING_LEVEL = 3
+export const BUILDING_XP_LEVEL_2 = 60
+export const BUILDING_XP_LEVEL_3 = 180
+export const BUILDING_XP_HOME_PER_HOUR = 3
+export const BUILDING_XP_WORK_PER_HOUR = 5
+export const BUILDING_XP_SHOP_VISIT = 14
+export const BUILDING_SCALE_PER_LEVEL = 0.14
+
+export const LAND_VALUE_RADIUS = 3
+export const LAND_VALUE_MIN = 8
+export const LAND_VALUE_MAX = 100
+
+export const MAX_POPULATION = 80
+export const INFLOW_MIN_HAPPINESS = 40
+export const INFLOW_INTERVAL_HOURS = 6
+
+export const HOUSE_TAX_PER_LEVEL_PER_HOUR = 0.35
+export const WORK_TAX_RATIO = 0.35
+export const SHOP_CITY_CUT = 4
+export const WAGE_LEVEL_BONUS = 0.25
+

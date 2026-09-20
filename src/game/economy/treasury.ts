@@ -13,6 +13,14 @@ export class Treasury {
     this.funds = this.freeze ? DEV_FIXED_FUNDS : funds
   }
 
+  receive(amount: number): void {
+    if (this.freeze || amount <= 0) {
+      return
+    }
+
+    this.funds += amount
+  }
+
   canAfford(cost: number): boolean {
     return this.freeze || cost <= this.funds
   }

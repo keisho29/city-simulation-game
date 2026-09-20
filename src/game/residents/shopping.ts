@@ -1,4 +1,6 @@
-import { HUNGER_SHOP_THRESHOLD } from '../constants.ts'
+import { BUILDING_XP_SHOP_VISIT, HUNGER_SHOP_THRESHOLD } from '../constants.ts'
+import { collectShopCut } from '../economy/circulation.ts'
+import type { Treasury } from '../economy/treasury.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import { isWorkHours } from './commute.ts'
 import { buyFood, canAffordFood } from './needs.ts'
@@ -44,8 +46,15 @@ export function maybeStartShopping(
   resident.state = ResidentState.MovingToShop
 }
 
-export function finishShopping(resident: Resident): void {
-  buyFood(resident)
+export function finishShopping(resident: Resident, map?: WorldMap, treasury?: Treasury): void {
+  const shop = resident.shopTarget
+  const bought = buyFood(resident)
+  if (bought && shop && map) {
+    map.grantXp(shop.x, shop.y, BUILDING_XP_SHOP_VISIT)
+  }
+  if (bought && treasury) {
+    collectShopCut(treasury)
+  }
   resident.shopTarget = undefined
   resident.state = resident.home ? ResidentState.MovingToHome : ResidentState.SeekingHome
 }

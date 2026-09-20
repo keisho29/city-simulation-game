@@ -46,7 +46,7 @@ describe('resident inspect', () => {
     expect(pickNearestResident([far, near], 0, 0)).toBeUndefined()
   })
 
-  it('falls back to the resident of a clicked house or workplace', () => {
+  it('does not treat an empty workplace click as a resident inspect', () => {
     const resident = createResident({
       home: { x: 3, y: 4 },
       workplace: { x: 8, y: 4 },
@@ -54,8 +54,7 @@ describe('resident inspect', () => {
       worldY: 144,
     })
     expect(pickResidentOnTile([resident], { x: 3, y: 4 })?.id).toBe('resident-1')
-    expect(inspectResident([resident], 0, 0, { x: 8, y: 4 })?.id).toBe('resident-1')
-    expect(inspectResident([resident], 0, 0, { x: 1, y: 1 })).toBeUndefined()
-    expect(inspectResident([resident], 200, 200, undefined, 150)?.id).toBe('resident-1')
+    expect(inspectResident([resident], 0, 0, { x: 8, y: 4 })).toBeUndefined()
+    expect(inspectResident([resident], 118, 148, { x: 3, y: 4 })?.id).toBe('resident-1')
   })
 })

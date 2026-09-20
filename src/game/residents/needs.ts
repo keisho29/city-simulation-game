@@ -5,6 +5,7 @@ import {
   SHOP_HUNGER_RELIEF,
   SHOP_PRICE,
   WAGE_FARM_PER_HOUR,
+  WAGE_LEVEL_BONUS,
   WAGE_SHOP_PER_HOUR,
   WAGE_WORKSHOP_PER_HOUR,
   type GameSpeed,
@@ -32,6 +33,10 @@ export function wagePerHour(type: TileType | undefined): number {
     default:
       return 0
   }
+}
+
+export function wageForTile(type: TileType | undefined, level: number): number {
+  return wagePerHour(type) * (1 + Math.max(0, level - 1) * WAGE_LEVEL_BONUS)
 }
 
 export function canAffordFood(resident: Resident): boolean {
@@ -62,5 +67,5 @@ export function tickNeeds(resident: Resident, map: WorldMap, gameHours: number):
   }
 
   const job = map.getTile(resident.workplace.x, resident.workplace.y)
-  resident.money += wagePerHour(job?.type) * gameHours
+  resident.money += wageForTile(job?.type, job?.level ?? 1) * gameHours
 }

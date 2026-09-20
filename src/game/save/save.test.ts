@@ -50,6 +50,8 @@ describe('parseSnapshot', () => {
     expect(parsed?.residents[0]?.hunger).toBe(44)
     expect(parsed?.residents[0]?.money).toBe(31)
     expect(parsed?.tiles[0]?.occupantIds).toEqual(['resident-1'])
+    expect(parsed?.tiles[0]?.level).toBe(1)
+    expect(parsed?.tiles[0]?.xp).toBe(0)
   })
 
   it('fills hunger and money when an older save omits them', () => {
@@ -60,6 +62,13 @@ describe('parseSnapshot', () => {
     const parsed = parseSnapshot(raw)
     expect(parsed?.residents[0]?.hunger).toBe(35)
     expect(parsed?.residents[0]?.money).toBe(24)
+  })
+
+  it('fills building level when an older save omits it', () => {
+    const raw = sampleSnapshot()
+    const parsed = parseSnapshot(raw)
+    expect(parsed?.tiles[0]?.level).toBe(1)
+    expect(parsed?.tiles[1]?.xp).toBe(0)
   })
 
   it('rejects a save with the wrong version', () => {

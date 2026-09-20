@@ -1,8 +1,12 @@
 import {
   INITIAL_RESIDENT_COUNT,
+  INFLOW_INTERVAL_HOURS,
   RESIDENT_MOVE_SPEED,
   type GameSpeed,
 } from '../constants.ts'
+import { canAcceptInflow, createInflowResident } from '../city/inflow.ts'
+import { tickCityEconomy } from '../economy/circulation.ts'
+import type { Treasury } from '../economy/treasury.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import { applySchedule } from './commute.ts'
 import { assignJobs } from './employment.ts'
@@ -18,6 +22,7 @@ const ARRIVE_DISTANCE = 2
 export class ResidentSim {
   readonly residents: Resident[]
   private readonly map: WorldMap
+  private inflowHours = 0
 
   constructor(map: WorldMap, residents?: Resident[]) {
     this.map = map
@@ -65,7 +70,13 @@ export class ResidentSim {
     return averageHappiness(this.residents)
   }
 
-  update(deltaMs: number, speed: GameSpeed, hour: number, isHoliday = false): void {
+  update(
+    deltaMs: number,
+    speed: GameSpeed,
+    hour: number,
+    isHoliday = false,
+    treasury?: Treasury,
+  ): void {
     if (speed === 0 || deltaMs <= 0) {
       return
     }
@@ -75,16 +86,48 @@ export class ResidentSim {
 
     for (const resident of this.residents) {
       tickNeeds(resident, this.map, gameHours)
+      if (treasury) {
+        tickCityEconomy(resident, this.map, treasury, gameHours)
+      }
       applySchedule(resident, hour, isHoliday)
       maybeStartShopping(resident, this.map, hour, isHoliday)
       relocateIfNeeded(this.map, [resident])
-      this.walkTowardGoal(resident, step)
+      this.walkTowardGoal(resident, step, treasury)
     }
 
+    this.fillOpenedSlots()
+    this.tryInflow(gameHours)
     applyHappiness(this.residents, { isHoliday })
   }
 
-  private walkTowardGoal(resident: Resident, step: number): void {
+  private fillOpenedSlots(): void {
+    const homeless = this.residents.some((resident) => !resident.home)
+    const jobless = this.residents.some((resident) => resident.home && !resident.workplace)
+    if (homeless && this.map.vacantHouseSlots() > 0) {
+      this.refreshHousing()
+    }
+    if (jobless && this.map.vacantJobSlots() > 0) {
+      this.refreshJobs()
+    }
+  }
+
+  private tryInflow(gameHours: number): void {
+    this.inflowHours += gameHours
+    if (this.inflowHours < INFLOW_INTERVAL_HOURS) {
+      return
+    }
+    this.inflowHours = 0
+    if (!canAcceptInflow(this.map, this.residents)) {
+      return
+    }
+
+    const next = createInflowResident(this.map, this.residents.length)
+    this.residents.push(next)
+    this.refreshHousing()
+    this.refreshJobs()
+  }
+
+  private walkTowardGoal(resident: Resident, step: number, treasury?: Treasury): void {
     const goal = this.walkGoal(resident)
     if (!goal) {
       return
@@ -100,7 +143,7 @@ export class ResidentSim {
       resident.worldY = target.y
       resident.state = goal.arriveState
       if (goal.arriveState === ResidentState.Shopping) {
-        finishShopping(resident)
+        finishShopping(resident, this.map, treasury)
       }
       return
     }

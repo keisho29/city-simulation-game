@@ -111,9 +111,16 @@ function parseTile(raw: unknown): Tile | undefined {
   }
 
   const occupantIds = raw.occupantIds.filter((id): id is string => typeof id === 'string')
+  const type = raw.type as Tile['type']
+  const level = isFiniteNumber(raw.level) ? Math.max(1, Math.min(3, Math.floor(raw.level))) : 1
+  const xp = isFiniteNumber(raw.xp) ? Math.max(0, raw.xp) : 0
+  const variant = isFiniteNumber(raw.variant) ? Math.max(0, Math.floor(raw.variant) % 3) : 0
   return {
-    type: raw.type as Tile['type'],
+    type,
     occupantIds,
+    level,
+    xp,
+    variant,
   }
 }
 

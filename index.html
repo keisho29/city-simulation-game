@@ -144,6 +144,14 @@
             <dt>マップ</dt>
             <dd>50 × 50</dd>
           </div>
+          <div>
+            <dt>地価</dt>
+            <dd id="hud-land-value">8</dd>
+          </div>
+          <div>
+            <dt>要望</dt>
+            <dd id="hud-demands">なし</dd>
+          </div>
           <div id="hud-funds-note" hidden>
             <dt>資金</dt>
             <dd>開発用・固定</dd>
@@ -155,7 +163,7 @@
           <h2>住民</h2>
           <button type="button" id="resident-close" hidden>閉じる</button>
         </div>
-        <p class="hud-hint" id="resident-empty">見るを選んで、住民をクリックしてください。</p>
+        <p class="hud-hint" id="resident-empty">見るを選んで、住民や建物をクリックしてください。</p>
         <dl class="stat-list" id="resident-detail" hidden>
           <div>
             <dt>名前</dt>
@@ -192,6 +200,28 @@
           <div>
             <dt>幸福度</dt>
             <dd id="resident-happiness"></dd>
+          </div>
+        </dl>
+        <dl class="stat-list" id="tile-detail" hidden>
+          <div>
+            <dt>建物</dt>
+            <dd id="tile-name"></dd>
+          </div>
+          <div>
+            <dt>レベル</dt>
+            <dd id="tile-level"></dd>
+          </div>
+          <div>
+            <dt>経験</dt>
+            <dd id="tile-xp"></dd>
+          </div>
+          <div>
+            <dt>地価</dt>
+            <dd id="tile-value"></dd>
+          </div>
+          <div>
+            <dt>収容</dt>
+            <dd id="tile-capacity"></dd>
           </div>
         </dl>
       </section>

@@ -14,6 +14,7 @@ import {
   PaintMode,
 } from '../buildings/catalog.ts'
 import {
+  BUILDING_SCALE_PER_LEVEL,
   DEV_FREEZE_FUNDS,
   INITIAL_FUNDS,
   START_VIEW_TILES,
@@ -21,7 +22,11 @@ import {
   snapZoom,
 } from '../constants.ts'
 import { Treasury } from '../economy/treasury.ts'
-import { TileType } from '../map/tile.ts'
+import { cityDemands } from '../city/demands.ts'
+import { buildingTint } from '../map/growth.ts'
+import { tileDetailView } from '../map/inspectTile.ts'
+import { averageLandValue } from '../map/landValue.ts'
+import { isGrowableType, TileType } from '../map/tile.ts'
 import { WorldMap } from '../map/WorldMap.ts'
 import { inspectResident, residentDetailView } from '../residents/inspect.ts'
 import { ResidentSim } from '../residents/ResidentSim.ts'
@@ -61,11 +66,15 @@ export class MainScene extends Phaser.Scene {
   private happinessLabel: HTMLElement | null = null
   private fundsLabel: HTMLElement | null = null
   private fundsNote: HTMLElement | null = null
+  private landValueLabel: HTMLElement | null = null
+  private demandsLabel: HTMLElement | null = null
   private residentSim: ResidentSim | undefined
   private treasury = new Treasury(INITIAL_FUNDS)
   private residentMarkers: Phaser.GameObjects.Image[] = []
   private saveAccumMs = 0
   private selectedResidentId: string | undefined
+  private selectedTile: { x: number; y: number } | undefined
+  private lastBuildingLevel = new Uint8Array(0)
   private inspectGraphics: Phaser.GameObjects.Graphics | undefined
   private residentPanel = bindResidentPanel()
 
@@ -102,6 +111,8 @@ export class MainScene extends Phaser.Scene {
     this.happinessLabel = document.querySelector('#hud-happiness')
     this.fundsLabel = document.querySelector('#hud-funds')
     this.fundsNote = document.querySelector('#hud-funds-note')
+    this.landValueLabel = document.querySelector('#hud-land-value')
+    this.demandsLabel = document.querySelector('#hud-demands')
     this.residentPanel.onClose(() => this.clearResidentInspect())
     this.renderDate()
     this.renderClock()
@@ -128,7 +139,12 @@ export class MainScene extends Phaser.Scene {
       this.gameTime.speed,
       this.gameTime.hour,
       this.gameTime.isHoliday,
+      this.treasury,
     )
+    if (this.residentSim && this.residentMarkers.length !== this.residentSim.residents.length) {
+      this.createResidentMarkers()
+    }
+    this.syncBuildingVisuals()
     this.syncResidentMarkers()
     this.renderInspectedResident()
     this.renderCityHud()
@@ -289,6 +305,13 @@ export class MainScene extends Phaser.Scene {
     if (this.fundsNote) {
       this.fundsNote.hidden = !DEV_FREEZE_FUNDS
     }
+    if (this.landValueLabel) {
+      this.landValueLabel.textContent = `${averageLandValue(this.worldMap)}`
+    }
+    if (this.demandsLabel) {
+      const demands = cityDemands(this.worldMap, this.residentSim.residents)
+      this.demandsLabel.textContent = demands.length > 0 ? demands.join('、') : 'なし'
+    }
   }
 
   private setTool(tool: BuildTool): void {
@@ -318,6 +341,7 @@ export class MainScene extends Phaser.Scene {
     }
     this.tileSprites = []
     this.propSprites = []
+    this.lastBuildingLevel = new Uint8Array(this.worldMap.tileCount)
 
     const { tileSize, pixelWidth, pixelHeight } = this.worldMap
     this.grassField = this.add
@@ -616,13 +640,23 @@ export class MainScene extends Phaser.Scene {
       frame === 'tree' || frame === 'bush' || frame === 'flower' ? decoOffset(x, y) : { x: 0, y: 0 }
     const width = size * layout.width
     const height = size * layout.height
+    const tile = this.worldMap.getTile(x, y)
+    const growable = Boolean(tile && isGrowableType(tile.type) && !frame.startsWith('road-'))
+    const level = growable && tile ? tile.level : 1
+    const variant = tile?.variant ?? 0
+    const boost = growable ? 1 + (level - 1) * BUILDING_SCALE_PER_LEVEL : 1
 
     sprite.setOrigin(layout.originX, layout.originY)
     sprite.setPosition(
       x * size + size / 2 + jitter.x,
       y * size + size * layout.originY + jitter.y,
     )
-    sprite.setDisplaySize(width, height)
+    sprite.setDisplaySize(width * boost, height * boost)
+    if (growable && tile) {
+      sprite.setTint(buildingTint(tile.type, level, variant))
+    } else {
+      sprite.clearTint()
+    }
     sprite.setDepth(
       frame.startsWith('road-') || frame === 'flower' ? 1 + y * 0.02 : 18 + y,
     )
@@ -636,6 +670,8 @@ export class MainScene extends Phaser.Scene {
     if (!ground || !prop || !tile) {
       return
     }
+
+    this.lastBuildingLevel[index] = isGrowableType(tile.type) ? tile.level : 0
 
     if (tile.type === TileType.Road) {
       const frame = buildingTileKey(tile.type, this.worldMap.roadConnections(x, y)) ?? 'road-0'
@@ -692,33 +728,60 @@ export class MainScene extends Phaser.Scene {
       radius,
     )
     this.selectedResidentId = resident?.id
+    this.selectedTile = resident ? undefined : tile
     this.renderInspectedResident()
   }
 
   private clearResidentInspect(): void {
     this.selectedResidentId = undefined
+    this.selectedTile = undefined
     this.renderInspectedResident()
+  }
+
+  private syncBuildingVisuals(): void {
+    this.worldMap.forEachTile((x, y, tile) => {
+      const index = y * this.worldMap.width + x
+      const level = isGrowableType(tile.type) ? tile.level : 0
+      if (this.lastBuildingLevel[index] === level) {
+        return
+      }
+      this.paintTile(x, y)
+    })
   }
 
   private renderInspectedResident(): void {
     const resident = this.residentSim?.residents.find(
       (entry) => entry.id === this.selectedResidentId,
     )
-    if (!resident) {
-      this.selectedResidentId = undefined
-      this.residentPanel.render(undefined)
+    if (resident) {
+      this.residentPanel.render(residentDetailView(resident, this.jobTypeOf(resident.workplace)))
       this.inspectGraphics?.clear()
+      this.inspectGraphics?.lineStyle(2, SELECT_RING, 0.95)
+      this.inspectGraphics?.strokeCircle(
+        resident.worldX,
+        resident.worldY - RESIDENT_DISPLAY_HEIGHT * 0.5,
+        11,
+      )
       return
     }
 
-    this.residentPanel.render(residentDetailView(resident, this.jobTypeOf(resident.workplace)))
+    this.selectedResidentId = undefined
+    if (this.selectedTile) {
+      this.residentPanel.render(undefined, tileDetailView(this.worldMap, this.selectedTile.x, this.selectedTile.y))
+      this.inspectGraphics?.clear()
+      const size = this.worldMap.tileSize
+      this.inspectGraphics?.lineStyle(2, SELECT_RING, 0.95)
+      this.inspectGraphics?.strokeRect(
+        this.selectedTile.x * size + 1,
+        this.selectedTile.y * size + 1,
+        size - 2,
+        size - 2,
+      )
+      return
+    }
+
+    this.residentPanel.render()
     this.inspectGraphics?.clear()
-    this.inspectGraphics?.lineStyle(2, SELECT_RING, 0.95)
-    this.inspectGraphics?.strokeCircle(
-      resident.worldX,
-      resident.worldY - RESIDENT_DISPLAY_HEIGHT * 0.5,
-      11,
-    )
   }
 
   private jobTypeOf(

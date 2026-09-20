@@ -1,5 +1,6 @@
-import { HOUSE_CAPACITY, JOB_CAPACITY, MAP_HEIGHT, MAP_WIDTH, TILE_SIZE } from '../constants.ts'
-import { isWorkplaceType, TileType, type Tile } from './tile.ts'
+import { MAP_HEIGHT, MAP_WIDTH, TILE_SIZE } from '../constants.ts'
+import { addBuildingXp, buildingVariantAt, houseSlots, jobSlots } from './growth.ts'
+import { createTile, isGrowableType, isWorkplaceType, TileType, type Tile } from './tile.ts'
 
 export class WorldMap {
   readonly width: number
@@ -15,10 +16,7 @@ export class WorldMap {
     this.width = width
     this.height = height
     this.tileSize = tileSize
-    this.tiles = Array.from({ length: width * height }, () => ({
-      type: TileType.Vacant,
-      occupantIds: [],
-    }))
+    this.tiles = Array.from({ length: width * height }, () => createTile())
   }
 
   get pixelWidth(): number {
@@ -51,8 +49,7 @@ export class WorldMap {
       return
     }
 
-    tile.type = type
-    tile.occupantIds = []
+    Object.assign(tile, createTile(type, buildingVariantAt(x, y)))
   }
 
   worldToTile(worldX: number, worldY: number): { x: number; y: number } | undefined {
@@ -106,12 +103,12 @@ export class WorldMap {
 
   isHouseVacant(x: number, y: number): boolean {
     const tile = this.getTile(x, y)
-    return tile?.type === TileType.House && tile.occupantIds.length < HOUSE_CAPACITY
+    return tile?.type === TileType.House && tile.occupantIds.length < houseSlots(tile)
   }
 
   occupyHouse(x: number, y: number, residentId: string): boolean {
     const tile = this.getTile(x, y)
-    if (!tile || tile.type !== TileType.House || tile.occupantIds.length >= HOUSE_CAPACITY) {
+    if (!tile || tile.type !== TileType.House || tile.occupantIds.length >= houseSlots(tile)) {
       return false
     }
 
@@ -146,12 +143,12 @@ export class WorldMap {
 
   isJobVacant(x: number, y: number): boolean {
     const tile = this.getTile(x, y)
-    return tile !== undefined && isWorkplaceType(tile.type) && tile.occupantIds.length < JOB_CAPACITY
+    return tile !== undefined && isWorkplaceType(tile.type) && tile.occupantIds.length < jobSlots(tile)
   }
 
   occupyJob(x: number, y: number, residentId: string): boolean {
     const tile = this.getTile(x, y)
-    if (!tile || !isWorkplaceType(tile.type) || tile.occupantIds.length >= JOB_CAPACITY) {
+    if (!tile || !isWorkplaceType(tile.type) || tile.occupantIds.length >= jobSlots(tile)) {
       return false
     }
 
@@ -242,6 +239,9 @@ export class WorldMap {
     return this.tiles.map((tile) => ({
       type: tile.type,
       occupantIds: [...tile.occupantIds],
+      level: tile.level,
+      xp: tile.xp,
+      variant: tile.variant,
     }))
   }
 
@@ -255,9 +255,48 @@ export class WorldMap {
       const target = this.tiles[index]
       target.type = source.type
       target.occupantIds = [...source.occupantIds]
+      target.level = source.level
+      target.xp = source.xp
+      target.variant = source.variant
     }
 
     return true
+  }
+
+  grantXp(x: number, y: number, amount: number): boolean {
+    const tile = this.getTile(x, y)
+    if (!tile || !isGrowableType(tile.type)) {
+      return false
+    }
+    return addBuildingXp(tile, amount)
+  }
+
+  vacantHouseSlots(): number {
+    let slots = 0
+    this.forEachTile((_x, _y, tile) => {
+      if (tile.type === TileType.House) {
+        slots += Math.max(0, houseSlots(tile) - tile.occupantIds.length)
+      }
+    })
+    return slots
+  }
+
+  vacantJobSlots(): number {
+    let slots = 0
+    this.forEachTile((_x, _y, tile) => {
+      if (isWorkplaceType(tile.type)) {
+        slots += Math.max(0, jobSlots(tile) - tile.occupantIds.length)
+      }
+    })
+    return slots
+  }
+
+  houseSlotsTotal(): number {
+    let slots = 0
+    this.forEachTile((_x, _y, tile) => {
+      slots += houseSlots(tile)
+    })
+    return slots
   }
 
   isRoad(x: number, y: number): boolean {
