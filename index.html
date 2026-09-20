@@ -134,6 +134,20 @@
           </svg>
           診療
         </button>
+        <button type="button" data-tool="school" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 20V10l8-6 8 6v10H4Z" />
+            <path d="M8 14h8M12 10v8" />
+          </svg>
+          寺子屋
+        </button>
+        <button type="button" data-tool="factory" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 20V11l6 3V11l6 3V8l6 4v8H3Z" />
+            <path d="M18 8V4" />
+          </svg>
+          工場
+        </button>
       </div>
       <div class="menu-group" role="toolbar" aria-label="編集">
         <button type="button" data-tool="erase" aria-pressed="false">
@@ -178,6 +192,18 @@
           <div>
             <dt>地価</dt>
             <dd id="hud-land-value">8</dd>
+          </div>
+          <div>
+            <dt>時代</dt>
+            <dd id="hud-era">1700年代</dd>
+          </div>
+          <div>
+            <dt>発展</dt>
+            <dd id="hud-development">0</dd>
+          </div>
+          <div>
+            <dt>技術</dt>
+            <dd id="hud-tech">なし</dd>
           </div>
           <div>
             <dt>要望</dt>
@@ -280,11 +306,16 @@
         <p class="hud-hint" id="hud-hint">矢印キー / 右ドラッグで移動</p>
         <p class="hud-hint">ホイールで拡大縮小</p>
         <p class="hud-hint">進捗は自動保存されます</p>
+        <button type="button" id="advance-era" hidden>
+          1800年代へ進む
+        </button>
         <button type="button" id="clear-game" title="セーブを消して最初からやり直す">
           最初から
         </button>
       </section>
     </aside>
+
+    <div id="toast-stack" aria-live="polite"></div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

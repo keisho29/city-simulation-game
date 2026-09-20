@@ -8,6 +8,7 @@ import { StockKind, type StockKind as StockKindType } from '../economy/goods.ts'
 import type { Tile } from '../map/tile.ts'
 import { Terrain, TileType } from '../map/tile.ts'
 import { createResident, ResidentState, type Resident, type TileRef } from '../residents/resident.ts'
+import { parseProgress, type ProgressState } from '../progress/progress.ts'
 
 export const SAVE_VERSION = 1
 export const SAVE_STORAGE_KEY = 'city-simulation-game.save'
@@ -25,6 +26,7 @@ export type SaveSnapshot = {
   tiles: Tile[]
   residents: Resident[]
   event: CityEventState
+  progress: ProgressState
 }
 
 const TILE_TYPES = new Set<string>(Object.values(TileType))
@@ -89,6 +91,7 @@ export function parseSnapshot(raw: unknown): SaveSnapshot | undefined {
     tiles,
     residents,
     event: parseEvent(raw.event),
+    progress: parseProgress(raw.progress),
   }
 }
 

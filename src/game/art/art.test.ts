@@ -37,6 +37,8 @@ describe('tile art', () => {
     expect(buildingTileKey(TileType.Well)).toBe('well')
     expect(buildingTileKey(TileType.Warehouse)).toBe('warehouse')
     expect(buildingTileKey(TileType.Clinic)).toBe('clinic')
+    expect(buildingTileKey(TileType.School)).toBe('school')
+    expect(buildingTileKey(TileType.Factory)).toBe('factory')
     expect(buildingTileKey(TileType.Road, 3)).toBe('road-3')
     expect(buildingTileKey(TileType.Vacant)).toBeUndefined()
   })

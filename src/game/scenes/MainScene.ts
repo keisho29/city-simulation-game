@@ -31,6 +31,16 @@ import { tileDetailView } from '../map/inspectTile.ts'
 import { averageLandValue } from '../map/landValue.ts'
 import { isGrowableType, isWaterTerrain, Terrain, TileType } from '../map/tile.ts'
 import { WorldMap } from '../map/WorldMap.ts'
+import { cityDevelopment } from '../progress/development.ts'
+import { EraId, ERAS, eraGrassTint, eraMapEdge, eraName, eraRoadTint } from '../progress/era.ts'
+import {
+  advanceEra,
+  discoveredTechLabel,
+  eraAdvanceView,
+  eraHudName,
+  isBuildingUnlocked,
+} from '../progress/progress.ts'
+import { techName } from '../progress/tech.ts'
 import { inspectResident, residentDetailView } from '../residents/inspect.ts'
 import { ResidentSim } from '../residents/ResidentSim.ts'
 import {
@@ -44,6 +54,7 @@ import { bindBuildMenu, type BuildMenu } from '../ui/buildMenu.ts'
 import { bindClearGame } from '../ui/clearGame.ts'
 import { bindResidentPanel } from '../ui/residentPanel.ts'
 import { bindSpeedMenu, type SpeedMenu } from '../ui/speedMenu.ts'
+import { showToast } from '../ui/toast.ts'
 
 const MAP_EDGE = 0x3d7a18
 const HOVER_VALID = 0xfff1a8
@@ -78,6 +89,11 @@ export class MainScene extends Phaser.Scene {
   private woodLabel: HTMLElement | null = null
   private goodsLabel: HTMLElement | null = null
   private eventLabel: HTMLElement | null = null
+  private eraLabel: HTMLElement | null = null
+  private developmentLabel: HTMLElement | null = null
+  private techLabel: HTMLElement | null = null
+  private advanceEraButton: HTMLButtonElement | null = null
+  private eraReadyTold = false
   private residentSim: ResidentSim | undefined
   private treasury = new Treasury(INITIAL_FUNDS)
   private residentMarkers: Phaser.GameObjects.Image[] = []
@@ -129,6 +145,11 @@ export class MainScene extends Phaser.Scene {
     this.woodLabel = document.querySelector('#hud-wood')
     this.goodsLabel = document.querySelector('#hud-goods')
     this.eventLabel = document.querySelector('#hud-event')
+    this.eraLabel = document.querySelector('#hud-era')
+    this.developmentLabel = document.querySelector('#hud-development')
+    this.techLabel = document.querySelector('#hud-tech')
+    this.advanceEraButton = document.querySelector('#advance-era')
+    this.advanceEraButton?.addEventListener('click', () => this.tryAdvanceEra())
     this.residentPanel.onClose(() => this.clearResidentInspect())
     this.renderDate()
     this.renderClock()
@@ -140,6 +161,7 @@ export class MainScene extends Phaser.Scene {
     bindClearGame(() => this.startNewGame())
     this.createTileSprites()
     this.createResidentMarkers()
+    this.applyEraLook()
     this.renderCityHud()
     this.setupAutosave()
   }
@@ -164,6 +186,7 @@ export class MainScene extends Phaser.Scene {
     this.syncBuildingVisuals()
     this.syncResidentMarkers()
     this.renderInspectedResident()
+    this.flushDiscoveries()
     this.renderCityHud()
 
     this.saveAccumMs += delta
@@ -189,7 +212,12 @@ export class MainScene extends Phaser.Scene {
         speed: snapshot.speed,
       })
       this.treasury.applyLoadedFunds(snapshot.funds)
-      this.residentSim = new ResidentSim(this.worldMap, snapshot.residents, snapshot.event)
+      this.residentSim = new ResidentSim(
+        this.worldMap,
+        snapshot.residents,
+        snapshot.event,
+        snapshot.progress,
+      )
       this.renderDate()
       this.renderClock()
       return
@@ -206,6 +234,7 @@ export class MainScene extends Phaser.Scene {
     this.treasury = new Treasury(INITIAL_FUNDS)
     this.residentSim = new ResidentSim(this.worldMap)
     this.saveAccumMs = 0
+    this.eraReadyTold = false
     this.clearResidentInspect()
     this.buildMenu?.setPaintMode(PaintMode.Click)
     this.buildMenu?.setTool(BuildTool.None)
@@ -213,6 +242,7 @@ export class MainScene extends Phaser.Scene {
     this.createTileSprites()
     this.createResidentMarkers()
     this.fitMapInView()
+    this.applyEraLook()
     this.renderDate()
     this.renderClock()
     this.renderCityHud()
@@ -237,6 +267,7 @@ export class MainScene extends Phaser.Scene {
       tiles: this.worldMap.snapshotTiles(),
       residents: this.residentSim.residents,
       event: this.residentSim.cityEvent,
+      progress: this.residentSim.cityProgress,
     })
   }
 
@@ -363,6 +394,97 @@ export class MainScene extends Phaser.Scene {
     if (this.eventLabel) {
       this.eventLabel.textContent = eventDisplayName(this.residentSim.cityEvent)
     }
+    if (this.eraLabel) {
+      this.eraLabel.textContent = eraHudName(this.residentSim.cityProgress)
+    }
+    if (this.developmentLabel) {
+      this.developmentLabel.textContent = `${cityDevelopment(this.worldMap, this.residentSim.residents)}`
+    }
+    if (this.techLabel) {
+      this.techLabel.textContent = discoveredTechLabel(this.residentSim.cityProgress)
+    }
+    this.syncProgressUi()
+  }
+
+  private flushDiscoveries(): void {
+    const sim = this.residentSim
+    const discoveries = sim?.lastDiscoveries ?? []
+    if (!sim || discoveries.length === 0) {
+      return
+    }
+    for (const id of discoveries) {
+      showToast(`技術を発見：${techName(id)}`)
+      if (id === 'literacy') {
+        showToast('寺子屋が建てられるようになった')
+      }
+      if (id === 'industry') {
+        showToast('工場が建てられるようになった')
+      }
+    }
+    sim.lastDiscoveries = []
+    this.syncProgressUi()
+  }
+
+  private syncProgressUi(): void {
+    if (!this.residentSim) {
+      return
+    }
+    this.buildMenu?.setBuildingLocks((id) => isBuildingUnlocked(id, this.residentSim!.cityProgress))
+    const view = eraAdvanceView(
+      this.residentSim.cityProgress,
+      this.worldMap,
+      this.residentSim.residents,
+    )
+    if (this.advanceEraButton) {
+      this.advanceEraButton.hidden = !view.ready
+      this.advanceEraButton.textContent = `1800年代へ進む`
+    }
+    if (view.ready && !this.eraReadyTold) {
+      this.eraReadyTold = true
+      showToast('1800年代へ進めるようになった')
+    }
+  }
+
+  private tryAdvanceEra(): void {
+    if (!this.residentSim) {
+      return
+    }
+    const view = eraAdvanceView(
+      this.residentSim.cityProgress,
+      this.worldMap,
+      this.residentSim.residents,
+    )
+    if (!view.ready) {
+      return
+    }
+    const next = advanceEra(this.residentSim.cityProgress)
+    if (!next) {
+      return
+    }
+    const startYear = ERAS[next].startYear
+    if (this.gameTime.year < startYear) {
+      this.gameTime.year = startYear
+      this.gameTime.month = 1
+      this.gameTime.day = 1
+    }
+    this.eraReadyTold = false
+    showToast(`時代が${eraName(next)}になった`)
+    this.applyEraLook()
+    this.renderDate()
+    this.renderCityHud()
+    this.persistGame()
+  }
+
+  private applyEraLook(): void {
+    const era = this.residentSim?.cityProgress.era ?? EraId.Edo
+    document.body.dataset.era = era
+    this.grassField?.setTint(eraGrassTint(era))
+    if (this.mapEdge) {
+      this.mapEdge.clear()
+      this.mapEdge.lineStyle(2, eraMapEdge(era), 1)
+      this.mapEdge.strokeRect(0, 0, this.worldMap.pixelWidth, this.worldMap.pixelHeight)
+    }
+    this.worldMap.forEachTile((x, y) => this.paintTile(x, y))
   }
 
   private setTool(tool: BuildTool): void {
@@ -630,6 +752,9 @@ export class MainScene extends Phaser.Scene {
     }
 
     const building = BUILDINGS[this.selectedTool]
+    if (this.residentSim && !isBuildingUnlocked(this.selectedTool, this.residentSim.cityProgress)) {
+      return
+    }
     if (!this.treasury.canAfford(building.cost)) {
       return
     }
@@ -709,8 +834,11 @@ export class MainScene extends Phaser.Scene {
       y * size + size * layout.originY + jitter.y,
     )
     sprite.setDisplaySize(width * boost, height * boost)
-    if (growable && tile) {
-      sprite.setTint(buildingTint(tile.type, level, variant))
+    const era = this.residentSim?.cityProgress.era ?? EraId.Edo
+    if (frame.startsWith('road-')) {
+      sprite.setTint(eraRoadTint(era))
+    } else if (growable && tile) {
+      sprite.setTint(buildingTint(tile.type, level, variant, era))
     } else {
       sprite.clearTint()
     }

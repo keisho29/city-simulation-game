@@ -12,6 +12,8 @@ export const BuildTool = {
   Well: 'well',
   Warehouse: 'warehouse',
   Clinic: 'clinic',
+  School: 'school',
+  Factory: 'factory',
 } as const
 
 export type BuildTool = (typeof BuildTool)[keyof typeof BuildTool]
@@ -85,6 +87,18 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     name: '診療所',
     tileType: TileType.Clinic,
     cost: 160,
+  },
+  school: {
+    id: 'school',
+    name: '寺子屋',
+    tileType: TileType.School,
+    cost: 180,
+  },
+  factory: {
+    id: 'factory',
+    name: '工場',
+    tileType: TileType.Factory,
+    cost: 220,
   },
 }
 

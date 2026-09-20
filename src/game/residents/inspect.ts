@@ -47,6 +47,10 @@ export function workplaceLabel(type: TileType | undefined): string {
       return '倉庫'
     case TileType.Clinic:
       return '診療所'
+    case TileType.School:
+      return '寺子屋'
+    case TileType.Factory:
+      return '工場'
     default:
       return '未就職'
   }

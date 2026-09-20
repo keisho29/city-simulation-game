@@ -123,4 +123,17 @@ export const HOUSE_TAX_PER_LEVEL_PER_HOUR = 0.35
 export const WORK_TAX_RATIO = 0.35
 export const SHOP_CITY_CUT = 4
 export const WAGE_LEVEL_BONUS = 0.25
+export const WAGE_SCHOOL_PER_HOUR = 4
+export const WAGE_FACTORY_PER_HOUR = 6
+
+export const ERA_ADVANCE_DEVELOPMENT = 28
+export const ERA_ADVANCE_HOUSED = 4
+export const TECH_COST_FARMING = 16
+export const TECH_COST_TRADE = 8
+export const TECH_COST_CRAFT = 14
+export const TECH_COST_HYGIENE = 12
+export const TECH_COST_LOGISTICS = 12
+export const TECH_COST_LITERACY = 18
+export const TECH_COST_INDUSTRY = 16
+export const FARMING_HARVEST_BONUS = 1.15
 

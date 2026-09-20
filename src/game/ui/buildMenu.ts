@@ -4,6 +4,7 @@ import {
   isBuildingTool,
   isEditTool,
   PaintMode,
+  type BuildingId,
 } from '../buildings/catalog.ts'
 
 type BuildMenuHandlers = {
@@ -14,6 +15,7 @@ type BuildMenuHandlers = {
 export type BuildMenu = {
   setTool: (tool: BuildTool) => void
   setPaintMode: (mode: PaintMode) => void
+  setBuildingLocks: (unlocked: (id: BuildingId) => boolean) => void
 }
 
 export function bindBuildMenu(handlers: BuildMenuHandlers): BuildMenu {
@@ -23,6 +25,7 @@ export function bindBuildMenu(handlers: BuildMenuHandlers): BuildMenu {
     return {
       setTool: handlers.onToolChange,
       setPaintMode: handlers.onPaintModeChange,
+      setBuildingLocks: () => undefined,
     }
   }
 
@@ -103,7 +106,22 @@ export function bindBuildMenu(handlers: BuildMenuHandlers): BuildMenu {
     }
   })
 
+  const setBuildingLocks = (unlocked: (id: BuildingId) => boolean) => {
+    for (const button of toolButtons) {
+      const tool = button.dataset.tool
+      if (!tool || !isBuildingTool(tool)) {
+        continue
+      }
+      const locked = !unlocked(tool)
+      button.hidden = locked
+      button.classList.toggle('is-locked', locked)
+      if (locked && currentTool === tool) {
+        setTool(BuildTool.None)
+      }
+    }
+  }
+
   setPaintMode(PaintMode.Click)
   setTool(BuildTool.None)
-  return { setTool, setPaintMode }
+  return { setTool, setPaintMode, setBuildingLocks }
 }

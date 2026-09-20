@@ -31,6 +31,8 @@ export const TILE_ATLAS_ORDER = [
   'well',
   'warehouse',
   'clinic',
+  'school',
+  'factory',
 ] as const
 
 export type TileAtlasKey = (typeof TILE_ATLAS_ORDER)[number]
@@ -428,6 +430,38 @@ function makeClinic(): PixelSprite {
   return canvas.toSprite(LAND)
 }
 
+function makeSchool(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE)
+  canvas.fillRect(6, 26, 20, 5, '7')
+  canvas.fillRect(5, 14, 22, 13, 'B')
+  canvas.fillRect(6, 15, 20, 11, 'N')
+  outlineRect(canvas, 5, 14, 22, 13, '#')
+  for (let i = 0; i < 9; i += 1) {
+    canvas.fillRect(4 + Math.floor(i / 2), 6 + i, 24 - i, 1, i < 3 ? 'K' : 'M')
+  }
+  canvas.fillRect(8, 17, 4, 3, 'I')
+  canvas.fillRect(20, 17, 4, 3, 'I')
+  canvas.fillRect(14, 20, 4, 7, 'D')
+  canvas.fillRect(12, 11, 8, 3, 'A')
+  canvas.fillRect(13, 12, 6, 1, 'B')
+  return canvas.toSprite(LAND)
+}
+
+function makeFactory(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE)
+  canvas.fillRect(4, 26, 24, 5, '8')
+  canvas.fillRect(5, 14, 18, 13, 'r')
+  canvas.fillRect(6, 15, 16, 11, 'R')
+  outlineRect(canvas, 5, 14, 18, 13, '#')
+  canvas.fillRect(22, 6, 6, 21, 'h')
+  canvas.fillRect(23, 4, 4, 4, 'H')
+  canvas.fillRect(24, 2, 2, 3, 'A')
+  canvas.fillRect(8, 17, 4, 3, 'I')
+  canvas.fillRect(14, 17, 4, 3, 'I')
+  canvas.fillRect(11, 21, 5, 6, 'D')
+  return canvas.toSprite(LAND)
+}
+
 function buildSprites(): Record<TileAtlasKey, PixelSprite> {
   const sprites = {
     'grass-base': makeGrass('base'),
@@ -451,6 +485,8 @@ function buildSprites(): Record<TileAtlasKey, PixelSprite> {
     well: makeWell(),
     warehouse: makeWarehouse(),
     clinic: makeClinic(),
+    school: makeSchool(),
+    factory: makeFactory(),
   } as Record<TileAtlasKey, PixelSprite>
 
   for (let index = 0; index < ROAD_COUNT; index += 1) {
@@ -476,6 +512,8 @@ export const TILES_NEEDING_GRASS: ReadonlySet<TileAtlasKey> = new Set([
   'well',
   'warehouse',
   'clinic',
+  'school',
+  'factory',
 ])
 
 export function vacantTileKey(_x: number, _y: number): TileAtlasKey {
@@ -500,6 +538,8 @@ export const PROP_LAYOUT: Record<string, PropLayout> = {
   well: { width: 1.15, height: 1.55, originX: 0.5, originY: 0.94 },
   warehouse: { width: 1.7, height: 2.25, originX: 0.5, originY: 0.94 },
   clinic: { width: 1.7, height: 2.25, originX: 0.5, originY: 0.94 },
+  school: { width: 1.8, height: 2.3, originX: 0.5, originY: 0.94 },
+  factory: { width: 1.9, height: 2.4, originX: 0.5, originY: 0.94 },
   tree: { width: 1.15, height: 1.55, originX: 0.5, originY: 0.96 },
   bush: { width: 1.1, height: 1.35, originX: 0.5, originY: 0.96 },
   flower: { width: 0.45, height: 0.45, originX: 0.5, originY: 0.78 },
@@ -545,6 +585,10 @@ export function buildingTileKey(type: TileType, connections = 0): TileAtlasKey |
       return 'warehouse'
     case TileType.Clinic:
       return 'clinic'
+    case TileType.School:
+      return 'school'
+    case TileType.Factory:
+      return 'factory'
     default:
       return undefined
   }

@@ -55,6 +55,21 @@ describe('parseSnapshot', () => {
     expect(parsed?.tiles[0]?.terrain).toBe('grass')
     expect(parsed?.tiles[0]?.food).toBe(0)
     expect(parsed?.event.kind).toBe('none')
+    expect(parsed?.progress.era).toBe('edo')
+    expect(parsed?.progress.discovered).toEqual([])
+  })
+
+  it('restores era and discovered technologies', () => {
+    const raw = sampleSnapshot() as Record<string, unknown>
+    raw.progress = {
+      era: 'meiji',
+      discovered: ['farming', 'trade', 'craft'],
+      progress: { farming: 16 },
+    }
+    const parsed = parseSnapshot(raw)
+    expect(parsed?.progress.era).toBe('meiji')
+    expect(parsed?.progress.discovered).toEqual(['farming', 'trade', 'craft'])
+    expect(parsed?.progress.progress.farming).toBe(16)
   })
 
   it('fills hunger and money when an older save omits them', () => {

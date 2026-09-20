@@ -9,6 +9,8 @@ export const TileType = {
   Well: 'well',
   Warehouse: 'warehouse',
   Clinic: 'clinic',
+  School: 'school',
+  Factory: 'factory',
 } as const
 
 export type TileType = (typeof TileType)[keyof typeof TileType]
@@ -42,7 +44,9 @@ export function isWorkplaceType(type: TileType): boolean {
     type === TileType.Workshop ||
     type === TileType.Market ||
     type === TileType.Warehouse ||
-    type === TileType.Clinic
+    type === TileType.Clinic ||
+    type === TileType.School ||
+    type === TileType.Factory
   )
 }
 

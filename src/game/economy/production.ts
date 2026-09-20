@@ -35,6 +35,22 @@ export function tickProduction(
       return
     }
 
+    if (tile.type === TileType.Factory) {
+      if (forest) {
+        map.addStock(x, y, StockKind.Wood, WOOD_PER_WORKER_HOUR * workers * gameHours)
+      }
+      const converted = map.takeStock(
+        x,
+        y,
+        StockKind.Wood,
+        GOODS_PER_WORKER_HOUR * 1.5 * workers * gameHours,
+      )
+      if (converted > 0) {
+        map.addStock(x, y, StockKind.Goods, converted)
+      }
+      return
+    }
+
     if (tile.type === TileType.Warehouse && forest) {
       map.addStock(x, y, StockKind.Wood, WOOD_PER_WORKER_HOUR * workers * gameHours)
       return

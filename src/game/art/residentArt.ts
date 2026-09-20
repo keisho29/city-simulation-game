@@ -117,7 +117,10 @@ export function residentArtKey(
   if (jobType === TileType.Warehouse) {
     return 'townsfolk'
   }
-  if (jobType === TileType.Clinic) {
+  if (jobType === TileType.Clinic || jobType === TileType.School) {
+    return 'artisan'
+  }
+  if (jobType === TileType.Factory) {
     return 'artisan'
   }
 

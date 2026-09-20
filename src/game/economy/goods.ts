@@ -23,13 +23,18 @@ export function canStore(type: TileType, kind: StockKind): boolean {
     )
   }
   if (kind === StockKind.Wood) {
-    return type === TileType.Warehouse || type === TileType.Workshop
+    return (
+      type === TileType.Warehouse ||
+      type === TileType.Workshop ||
+      type === TileType.Factory
+    )
   }
   return (
     type === TileType.Workshop ||
     type === TileType.Warehouse ||
     type === TileType.Market ||
-    type === TileType.Shop
+    type === TileType.Shop ||
+    type === TileType.Factory
   )
 }
 

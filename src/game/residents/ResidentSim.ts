@@ -1,4 +1,5 @@
 import {
+  FARMING_HARVEST_BONUS,
   INITIAL_RESIDENT_COUNT,
   INFLOW_INTERVAL_HOURS,
   RESIDENT_MOVE_SPEED,
@@ -19,6 +20,9 @@ import { completeDrop, completePickup, tryStartHaul } from '../economy/logistics
 import { tickProduction } from '../economy/production.ts'
 import type { Treasury } from '../economy/treasury.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
+import { tickTechDiscovery } from '../progress/discovery.ts'
+import { createProgress, hasTech, type ProgressState } from '../progress/progress.ts'
+import { TechId } from '../progress/tech.ts'
 import { applySchedule } from './commute.ts'
 import { assignJobs } from './employment.ts'
 import { applyHappiness, averageHappiness } from './happiness.ts'
@@ -33,12 +37,20 @@ const ARRIVE_DISTANCE = 2
 export class ResidentSim {
   readonly residents: Resident[]
   cityEvent: CityEventState
+  cityProgress: ProgressState
+  lastDiscoveries: ReturnType<typeof tickTechDiscovery> = []
   private readonly map: WorldMap
   private inflowHours = 0
 
-  constructor(map: WorldMap, residents?: Resident[], cityEvent?: CityEventState) {
+  constructor(
+    map: WorldMap,
+    residents?: Resident[],
+    cityEvent?: CityEventState,
+    progress?: ProgressState,
+  ) {
     this.map = map
     this.cityEvent = cityEvent ? { ...cityEvent } : createCityEvent()
+    this.cityProgress = createProgress(progress)
     if (residents) {
       this.residents = residents.map((resident) => createResident(resident))
       return
@@ -97,7 +109,10 @@ export class ResidentSim {
     const step = RESIDENT_MOVE_SPEED * (speed / 1) * (deltaMs / 1000)
     const gameHours = gameHoursFromDelta(deltaMs, speed)
     this.cityEvent = tickCityEvents(this.cityEvent, gameHours)
-    tickProduction(this.map, gameHours, harvestMultiplier(this.cityEvent))
+    const harvest =
+      harvestMultiplier(this.cityEvent) *
+      (hasTech(this.cityProgress, TechId.Farming) ? FARMING_HARVEST_BONUS : 1)
+    tickProduction(this.map, gameHours, harvest)
 
     for (const resident of this.residents) {
       tickNeeds(resident, this.map, gameHours)
@@ -113,6 +128,12 @@ export class ResidentSim {
 
     this.fillOpenedSlots()
     this.tryInflow(gameHours)
+    this.lastDiscoveries = tickTechDiscovery(
+      this.cityProgress,
+      this.map,
+      this.residents,
+      gameHours,
+    )
     applyHappiness(this.residents, { ...this.happinessContext(), isHoliday })
   }
 

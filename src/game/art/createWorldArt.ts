@@ -22,6 +22,8 @@ export const PROP_TEXTURE: Record<string, string> = {
   well: 'prop-well',
   warehouse: 'prop-warehouse',
   clinic: 'prop-clinic',
+  school: 'prop-school',
+  factory: 'prop-factory',
   tree: 'prop-tree',
   bush: 'prop-bush',
   flower: 'prop-flower',
@@ -77,6 +79,8 @@ export function createWorldArt(scene: Phaser.Scene): void {
   createPropTexture(scene.textures, PROP_TEXTURE.well, '')
   createPropTexture(scene.textures, PROP_TEXTURE.warehouse, '')
   createPropTexture(scene.textures, PROP_TEXTURE.clinic, '')
+  createPropTexture(scene.textures, PROP_TEXTURE.school, '')
+  createPropTexture(scene.textures, PROP_TEXTURE.factory, '')
   createTreeTextures(scene.textures)
   createFlowerTexture(scene.textures)
   createPropTexture(scene.textures, PROP_TEXTURE.rock, '')

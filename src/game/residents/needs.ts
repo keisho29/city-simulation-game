@@ -8,6 +8,8 @@ import {
   WAGE_FARM_PER_HOUR,
   WAGE_LEVEL_BONUS,
   WAGE_MARKET_PER_HOUR,
+  WAGE_SCHOOL_PER_HOUR,
+  WAGE_FACTORY_PER_HOUR,
   WAGE_SHOP_PER_HOUR,
   WAGE_WAREHOUSE_PER_HOUR,
   WAGE_WORKSHOP_PER_HOUR,
@@ -40,6 +42,10 @@ export function wagePerHour(type: TileType | undefined): number {
       return WAGE_MARKET_PER_HOUR
     case TileType.Clinic:
       return WAGE_CLINIC_PER_HOUR
+    case TileType.School:
+      return WAGE_SCHOOL_PER_HOUR
+    case TileType.Factory:
+      return WAGE_FACTORY_PER_HOUR
     default:
       return 0
   }
