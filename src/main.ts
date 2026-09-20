@@ -1,28 +1,18 @@
 import Phaser from 'phaser'
 import './style.css'
-
-class MainScene extends Phaser.Scene {
-  constructor() {
-    super('MainScene')
-  }
-
-  create() {
-    this.add
-      .text(400, 300, 'City Simulation Game', {
-        fontSize: '32px',
-        color: '#ffffff',
-      })
-      .setOrigin(0.5)
-  }
-}
+import { MainScene } from './game/scenes/MainScene.ts'
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
-  width: 800,
-  height: 600,
-  backgroundColor: '#2d5a3d',
   parent: 'app',
+  backgroundColor: '#1a2214',
   scene: MainScene,
+  scale: {
+    mode: Phaser.Scale.RESIZE,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+    width: window.innerWidth,
+    height: window.innerHeight,
+  },
 }
 
 new Phaser.Game(config)
