@@ -8,6 +8,11 @@ import {
   TECH_COST_RAILWAYS,
   TECH_COST_AVIATION,
   TECH_COST_TRADE,
+  TECH_COST_AUTOMOBILES,
+  TECH_COST_ELECTRICITY,
+  TECH_COST_SERVICES,
+  TECH_COST_COMPUTING,
+  TECH_COST_AERIAL,
 } from '../constants.ts'
 import { EraId } from './era.ts'
 
@@ -21,6 +26,11 @@ export const TechId = {
   Industry: 'industry',
   Railways: 'railways',
   Aviation: 'aviation',
+  Automobiles: 'automobiles',
+  Electricity: 'electricity',
+  Services: 'services',
+  Computing: 'computing',
+  Aerial: 'aerial',
 } as const
 
 export type TechId = (typeof TechId)[keyof typeof TechId]
@@ -96,6 +106,41 @@ export const TECHS: Record<TechId, TechDef> = {
     cost: TECH_COST_AVIATION,
     requires: [TechId.Railways],
     unlockBuildings: ['airport'],
+  },
+  automobiles: {
+    id: TechId.Automobiles,
+    name: '自動車',
+    era: EraId.Industrial,
+    cost: TECH_COST_AUTOMOBILES,
+    requires: [TechId.Industry],
+  },
+  electricity: {
+    id: TechId.Electricity,
+    name: '電力',
+    era: EraId.Industrial,
+    cost: TECH_COST_ELECTRICITY,
+    requires: [TechId.Industry],
+  },
+  services: {
+    id: TechId.Services,
+    name: 'サービス',
+    era: EraId.Contemporary,
+    cost: TECH_COST_SERVICES,
+    requires: [TechId.Trade, TechId.Electricity],
+  },
+  computing: {
+    id: TechId.Computing,
+    name: '情報',
+    era: EraId.Contemporary,
+    cost: TECH_COST_COMPUTING,
+    requires: [TechId.Literacy, TechId.Electricity],
+  },
+  aerial: {
+    id: TechId.Aerial,
+    name: '架空技術',
+    era: EraId.Future,
+    cost: TECH_COST_AERIAL,
+    requires: [TechId.Aviation, TechId.Computing],
   },
 }
 

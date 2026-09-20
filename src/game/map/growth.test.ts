@@ -55,5 +55,8 @@ describe('building growth', () => {
     expect(buildingDisplayName(TileType.House, 2, 2)).toBe('商家風の家')
     expect(buildingDisplayName(TileType.House, 3, 0)).toBe('瓦屋根の豪邸')
     expect(buildingDisplayName(TileType.Shop, 3, 0)).toBe('問屋')
+    expect(buildingDisplayName(TileType.House, 1, 0, 'future')).toBe('タワー住居')
+    expect(buildingDisplayName(TileType.Shop, 1, 0, 'contemporary')).toBe('スーパー')
+    expect(buildingDisplayName(TileType.Factory, 1, 0, 'industrial')).toBe('コンビナート')
   })
 })

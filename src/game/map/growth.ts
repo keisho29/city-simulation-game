@@ -4,7 +4,7 @@ import {
   MAX_BUILDING_LEVEL,
 } from '../constants.ts'
 import { hash32 } from '../art/pixelTexture.ts'
-import { EraId } from '../progress/era.ts'
+import { EraId, eraAtLeast } from '../progress/era.ts'
 import { isGrowableType, isWorkplaceType, TileType, type Tile } from './tile.ts'
 
 export function houseSlots(tile: Tile): number {
@@ -47,8 +47,22 @@ export function addBuildingXp(tile: Tile, amount: number): boolean {
   return leveled
 }
 
-export function buildingDisplayName(type: TileType, level: number, variant: number): string {
+export function buildingDisplayName(
+  type: TileType,
+  level: number,
+  variant: number,
+  era: EraId = EraId.Edo,
+): string {
   if (type === TileType.House) {
+    if (era === EraId.Future) {
+      return 'タワー住居'
+    }
+    if (era === EraId.Contemporary) {
+      return level >= 2 ? 'マンション' : '集合住宅'
+    }
+    if (era === EraId.Industrial) {
+      return level >= 2 ? 'アパート' : '赤煉瓦の家'
+    }
     if (level >= 3) {
       return variant === 1 ? '白い屋敷' : variant === 2 ? '大きな商家' : '瓦屋根の豪邸'
     }
@@ -58,46 +72,99 @@ export function buildingDisplayName(type: TileType, level: number, variant: numb
     return '木造住宅'
   }
   if (type === TileType.Shop) {
+    if (era === EraId.Future) {
+      return '自動商店'
+    }
+    if (era === EraId.Contemporary) {
+      return 'スーパー'
+    }
+    if (era === EraId.Industrial) {
+      return '百貨店'
+    }
     return level >= 3 ? '問屋' : level === 2 ? '大きな商店' : '商店'
   }
   if (type === TileType.Workshop) {
+    if (eraAtLeast(era, EraId.Industrial)) {
+      return '機械工房'
+    }
     return level >= 3 ? '大きな工房' : level === 2 ? '鍛冶工房' : '工房'
   }
   if (type === TileType.Farm) {
+    if (era === EraId.Future) {
+      return '植物工場'
+    }
+    if (eraAtLeast(era, EraId.Industrial)) {
+      return '機械化農場'
+    }
     return level >= 3 ? '豊かな田畑' : level === 2 ? '整った畑' : '農地'
   }
   if (type === TileType.Market) {
+    if (eraAtLeast(era, EraId.Contemporary)) {
+      return 'ショッピングモール'
+    }
     return level >= 3 ? '大きな市場' : level === 2 ? '賑わう市場' : '市場'
   }
   if (type === TileType.Well) {
-    return '井戸'
+    return eraAtLeast(era, EraId.Industrial) ? '水道' : '井戸'
   }
   if (type === TileType.Warehouse) {
-    return level >= 3 ? '大きな土蔵' : level === 2 ? '土蔵' : '倉庫'
+    return eraAtLeast(era, EraId.Industrial)
+      ? level >= 2
+        ? '物流センター'
+        : '倉庫'
+      : level >= 3
+        ? '大きな土蔵'
+        : level === 2
+          ? '土蔵'
+          : '倉庫'
   }
   if (type === TileType.Clinic) {
+    if (eraAtLeast(era, EraId.Contemporary)) {
+      return '病院'
+    }
     return level >= 3 ? '大きな診療所' : level === 2 ? '町の診療所' : '診療所'
   }
   if (type === TileType.School) {
+    if (era === EraId.Future) {
+      return '研究学園'
+    }
+    if (eraAtLeast(era, EraId.Industrial)) {
+      return '学校'
+    }
     return level >= 3 ? '大きな学校' : level === 2 ? '学校' : '寺子屋'
   }
   if (type === TileType.Factory) {
+    if (era === EraId.Future) {
+      return '自動化工場'
+    }
+    if (era === EraId.Contemporary) {
+      return 'ハイテク工場'
+    }
+    if (era === EraId.Industrial) {
+      return 'コンビナート'
+    }
     return level >= 3 ? '大きな工場' : level === 2 ? '機械工場' : '工場'
   }
   if (type === TileType.Station) {
-    return level >= 3 ? '大きな駅' : level === 2 ? '停車場' : '駅'
+    return eraAtLeast(era, EraId.Contemporary) ? '中央駅' : level >= 3 ? '大きな駅' : level === 2 ? '停車場' : '駅'
   }
   if (type === TileType.Port) {
-    return level >= 3 ? '大きな港' : level === 2 ? '船着場' : '港'
+    return eraAtLeast(era, EraId.Contemporary) ? 'コンテナ港' : level >= 3 ? '大きな港' : level === 2 ? '船着場' : '港'
   }
   if (type === TileType.Airport) {
-    return level >= 3 ? '国際空港' : level === 2 ? '飛行場' : '空港'
+    return era === EraId.Future ? '宇宙港' : level >= 3 ? '国際空港' : level === 2 ? '飛行場' : '空港'
   }
   if (type === TileType.Road) {
+    if (era === EraId.Future) {
+      return '未来路'
+    }
+    if (eraAtLeast(era, EraId.Industrial)) {
+      return '舗装道路'
+    }
     return '道路'
   }
   if (type === TileType.Rail) {
-    return '線路'
+    return era === EraId.Future ? '超導路' : '線路'
   }
   return '空き地'
 }
@@ -139,6 +206,15 @@ export function buildingTint(
     }
   }
 
+  if (era === EraId.Future) {
+    return type === TileType.House ? 0xc8fff4 : 0xd8f8ff
+  }
+  if (era === EraId.Contemporary) {
+    return type === TileType.House ? 0xe8e4dc : 0xdce4d0
+  }
+  if (era === EraId.Industrial) {
+    return type === TileType.Factory ? 0xb0a090 : type === TileType.House ? 0xd8c8b8 : 0xc8c4b0
+  }
   if (era === EraId.Meiji) {
     if (type === TileType.House) {
       return level >= 2 ? 0xe8d2c4 : 0xf4e4d8

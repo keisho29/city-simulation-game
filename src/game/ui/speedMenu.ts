@@ -4,6 +4,8 @@ export type SpeedMenu = {
   apply: (speed: GameSpeed) => void
 }
 
+const SPEEDS = new Set<number>(Object.values(GameSpeed))
+
 export function bindSpeedMenu(
   onChange: (speed: GameSpeed) => void,
   initialSpeed: GameSpeed = GameSpeed.X1,
@@ -36,13 +38,8 @@ export function bindSpeedMenu(
   for (const button of buttons) {
     button.addEventListener('click', () => {
       const speed = Number(button.dataset.speed)
-      if (
-        speed === GameSpeed.Pause ||
-        speed === GameSpeed.X1 ||
-        speed === GameSpeed.X2 ||
-        speed === GameSpeed.X5
-      ) {
-        setSpeed(speed)
+      if (SPEEDS.has(speed)) {
+        setSpeed(speed as GameSpeed)
       }
     })
   }

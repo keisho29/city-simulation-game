@@ -21,7 +21,10 @@ describe('era', () => {
   it('starts in the 1700s and can name the next era', () => {
     expect(eraName(EraId.Edo)).toBe('1700年代')
     expect(nextEra(EraId.Edo)).toBe(EraId.Meiji)
-    expect(nextEra(EraId.Meiji)).toBeUndefined()
+    expect(nextEra(EraId.Meiji)).toBe(EraId.Industrial)
+    expect(nextEra(EraId.Industrial)).toBe(EraId.Contemporary)
+    expect(nextEra(EraId.Contemporary)).toBe(EraId.Future)
+    expect(nextEra(EraId.Future)).toBeUndefined()
   })
 })
 
@@ -59,6 +62,19 @@ describe('tech progress', () => {
     expect(canDiscover(progress, TechId.Aviation)).toBe(true)
     addTechProgress(progress, TechId.Aviation, 80)
     expect(isBuildingUnlocked('airport', progress)).toBe(true)
+    expect(canDiscover(progress, TechId.Automobiles)).toBe(false)
+    progress.era = EraId.Industrial
+    expect(canDiscover(progress, TechId.Automobiles)).toBe(true)
+    addTechProgress(progress, TechId.Automobiles, 80)
+    addTechProgress(progress, TechId.Electricity, 80)
+    addTechProgress(progress, TechId.Trade, 80)
+    addTechProgress(progress, TechId.Literacy, 80)
+    progress.era = EraId.Contemporary
+    expect(canDiscover(progress, TechId.Services)).toBe(true)
+    addTechProgress(progress, TechId.Services, 80)
+    addTechProgress(progress, TechId.Computing, 80)
+    progress.era = EraId.Future
+    expect(canDiscover(progress, TechId.Aerial)).toBe(true)
   })
 
   it('unlocks a port after logistics is found', () => {
@@ -112,6 +128,28 @@ describe('era advance', () => {
     expect(eraAdvanceView(progress, map, residents).ready).toBe(true)
     expect(advanceEra(progress)).toBe(EraId.Meiji)
     expect(progress.era).toBe(EraId.Meiji)
+  })
+
+  it('opens 1900s after industry and railways take hold', () => {
+    const map = new WorldMap(8, 8, 32)
+    for (let index = 0; index < 10; index += 1) {
+      map.place(index % 8, Math.floor(index / 8), TileType.House)
+    }
+    map.place(0, 2, TileType.Factory)
+    const residents = Array.from({ length: 10 }, (_, index) =>
+      createResident({
+        id: `r${index}`,
+        home: { x: index % 8, y: Math.floor(index / 8) },
+        workplace: { x: 0, y: 2 },
+        happiness: 70,
+      }),
+    )
+    const progress = createProgress({
+      era: EraId.Meiji,
+      discovered: [TechId.Industry, TechId.Railways, TechId.Aviation, TechId.Automobiles],
+    })
+    expect(eraAdvanceView(progress, map, residents).ready).toBe(true)
+    expect(advanceEra(progress)).toBe(EraId.Industrial)
   })
 })
 

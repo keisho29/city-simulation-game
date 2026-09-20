@@ -2,7 +2,7 @@ import type { LandscapeProfile } from '../map/landscape.ts'
 import { TileType } from '../map/tile.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import { cityDevelopment } from '../progress/development.ts'
-import { EraId } from '../progress/era.ts'
+import { EraId, eraAtLeast, eraGrassTint } from '../progress/era.ts'
 import { hasTech, type ProgressState } from '../progress/progress.ts'
 import { TechId } from '../progress/tech.ts'
 import type { Resident } from '../residents/resident.ts'
@@ -467,6 +467,9 @@ export function isOverseas(id: RegionId): boolean {
 }
 
 export function regionGrassTint(id: RegionId, era: EraId): number {
+  if (eraAtLeast(era, EraId.Industrial)) {
+    return eraGrassTint(era)
+  }
   const base = REGIONS[id].grassTint
   if (era === EraId.Meiji && base === 0xffffff) {
     return 0xb8d890
@@ -494,7 +497,7 @@ export function regionUnlockView(
 
   const edo = stats(RegionId.Edo, maps, residents)
   const missing: string[] = []
-  const meiji = progress.era === EraId.Meiji
+  const meiji = eraAtLeast(progress.era, EraId.Meiji)
   const open = (city: RegionId) => maps.has(city)
   const needOpen = (city: RegionId, label?: string) => {
     if (!open(city)) {

@@ -31,7 +31,7 @@ import { tileDetailView } from '../map/inspectTile.ts'
 import { averageLandValue } from '../map/landValue.ts'
 import { isGrowableType, isWaterTerrain, Terrain, TileType } from '../map/tile.ts'
 import { cityDevelopment } from '../progress/development.ts'
-import { EraId, ERAS, eraMapEdge, eraName, eraRoadTint } from '../progress/era.ts'
+import { ERAS, eraMapEdge, eraName, eraRailTint, eraRoadTint, eraTransitLabel, nextEra } from '../progress/era.ts'
 import {
   advanceEra,
   discoveredTechLabel,
@@ -57,6 +57,8 @@ import { bindWorldMap, type WorldMapUi } from '../ui/worldMap.ts'
 import { showToast } from '../ui/toast.ts'
 import { REGIONS, areaName, countryName, linkLabel, regionGrassTint, regionName, type RegionId } from '../world/regions.ts'
 import { WorldSession } from '../world/WorldSession.ts'
+import { worldEventName } from '../world/events.ts'
+import { fortuneLabel } from '../world/fortune.ts'
 
 const MAP_EDGE = 0x3d7a18
 const HOVER_VALID = 0xfff1a8
@@ -101,6 +103,8 @@ export class MainScene extends Phaser.Scene {
   private linksLabel: HTMLElement | null = null
   private worldLabel: HTMLElement | null = null
   private eraLabel: HTMLElement | null = null
+  private fortuneLabel: HTMLElement | null = null
+  private worldEventLabel: HTMLElement | null = null
   private developmentLabel: HTMLElement | null = null
   private techLabel: HTMLElement | null = null
   private advanceEraButton: HTMLButtonElement | null = null
@@ -167,6 +171,8 @@ export class MainScene extends Phaser.Scene {
     this.linksLabel = document.querySelector('#hud-links')
     this.worldLabel = document.querySelector('#hud-world')
     this.eraLabel = document.querySelector('#hud-era')
+    this.fortuneLabel = document.querySelector('#hud-fortune')
+    this.worldEventLabel = document.querySelector('#hud-world-event')
     this.developmentLabel = document.querySelector('#hud-development')
     this.techLabel = document.querySelector('#hud-tech')
     this.advanceEraButton = document.querySelector('#advance-era')
@@ -201,6 +207,7 @@ export class MainScene extends Phaser.Scene {
       this.gameTime.hour,
       this.gameTime.isHoliday,
       this.treasury,
+      { year: this.gameTime.year, month: this.gameTime.month },
     )
     this.residentSim = this.world.active.sim
     this.worldMap = this.world.active.map
@@ -436,7 +443,12 @@ export class MainScene extends Phaser.Scene {
     }
     if (this.demandsLabel) {
       const extra = this.world.supplyFor(this.world.activeId)
-      const demands = cityDemands(this.worldMap, this.residentSim.residents, extra)
+      const demands = cityDemands(this.worldMap, this.residentSim.residents, {
+        ...extra,
+        era: this.world.progress.era,
+        fortune: this.residentSim.fortune,
+        progress: this.world.progress,
+      })
       const trade = this.world.tradeHintFor(this.world.activeId)
       this.demandsLabel.textContent =
         demands.length > 0 ? demands.join('、') : trade ? trade : 'なし'
@@ -458,10 +470,16 @@ export class MainScene extends Phaser.Scene {
       this.transitLabel.textContent =
         transit.riders + transit.riding + transit.upkeep > 0
           ? `乗降${transit.riders} 乗車${transit.riding} 維持${transit.upkeep}`
-          : '徒歩'
+          : eraTransitLabel(this.world.progress.era)
     }
     if (this.eraLabel) {
       this.eraLabel.textContent = eraHudName(this.world.progress)
+    }
+    if (this.fortuneLabel) {
+      this.fortuneLabel.textContent = fortuneLabel(this.residentSim.fortune)
+    }
+    if (this.worldEventLabel) {
+      this.worldEventLabel.textContent = worldEventName(this.world.worldEvent)
     }
     if (this.regionLabel) {
       this.regionLabel.textContent = regionName(this.world.activeId)
@@ -522,6 +540,21 @@ export class MainScene extends Phaser.Scene {
       if (id === 'aviation') {
         showToast('空港が建てられるようになった')
       }
+      if (id === 'automobiles') {
+        showToast('道路の往来が速くなった')
+      }
+      if (id === 'electricity') {
+        showToast('工房と工場の生産が上がった')
+      }
+      if (id === 'services') {
+        showToast('商業と暮らしが広がった')
+      }
+      if (id === 'computing') {
+        showToast('情報の技術が広がり始めた')
+      }
+      if (id === 'aerial') {
+        showToast('未来の交通が動き始めた')
+      }
     }
     this.flushWorldNews()
     if (discoveries.length > 0) {
@@ -538,6 +571,10 @@ export class MainScene extends Phaser.Scene {
       showToast(note)
     }
     this.world.lastMoves = []
+    for (const note of this.world.lastNews) {
+      showToast(note)
+    }
+    this.world.lastNews = []
   }
 
   private syncProgressUi(): void {
@@ -550,13 +587,14 @@ export class MainScene extends Phaser.Scene {
       this.worldMap,
       this.residentSim.residents,
     )
+    const upcoming = nextEra(this.world.progress.era)
     if (this.advanceEraButton) {
-      this.advanceEraButton.hidden = !view.ready
-      this.advanceEraButton.textContent = `1800年代へ進む`
+      this.advanceEraButton.hidden = !view.ready || !upcoming
+      this.advanceEraButton.textContent = upcoming ? `${eraName(upcoming)}へ進む` : '時代の終わり'
     }
-    if (view.ready && !this.eraReadyTold) {
+    if (view.ready && upcoming && !this.eraReadyTold) {
       this.eraReadyTold = true
-      showToast('1800年代へ進めるようになった')
+      showToast(`${eraName(upcoming)}へ進めるようになった`)
     }
   }
 
@@ -583,6 +621,7 @@ export class MainScene extends Phaser.Scene {
       this.gameTime.day = 1
     }
     this.eraReadyTold = false
+    this.world.recordHistory(this.gameTime.year, this.gameTime.month, `時代が${eraName(next)}になった`)
     showToast(`時代が${eraName(next)}になった`)
     this.applyEraLook()
     this.renderDate()
@@ -976,7 +1015,7 @@ export class MainScene extends Phaser.Scene {
     if (frame.startsWith('road-')) {
       sprite.setTint(eraRoadTint(era))
     } else if (frame.startsWith('rail-')) {
-      sprite.setTint(era === EraId.Meiji ? 0xd0ccc4 : 0xb8b0a4)
+      sprite.setTint(eraRailTint(era))
     } else if (growable && tile) {
       sprite.setTint(buildingTint(tile.type, level, variant, era))
     } else {
@@ -1122,7 +1161,7 @@ export class MainScene extends Phaser.Scene {
 
     this.selectedResidentId = undefined
     if (this.selectedTile) {
-      this.residentPanel.render(undefined, tileDetailView(this.worldMap, this.selectedTile.x, this.selectedTile.y))
+      this.residentPanel.render(undefined, tileDetailView(this.worldMap, this.selectedTile.x, this.selectedTile.y, this.world.progress.era))
       this.inspectGraphics?.clear()
       const size = this.worldMap.tileSize
       this.inspectGraphics?.lineStyle(2, SELECT_RING, 0.95)

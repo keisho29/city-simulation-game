@@ -49,6 +49,9 @@
               <path d="M1 3v10l5.5-5L1 3Zm6 0v10l5.5-5L7 3Zm6 0v10l5.5-5L13 3Z" />
             </svg>
           </button>
+          <button type="button" data-speed="20" aria-label="×20" aria-pressed="false" title="×20">
+            <span>20</span>
+          </button>
         </nav>
       </div>
       <div class="hud-funds-bar">
@@ -257,6 +260,14 @@
             <dd id="hud-era">1700年代</dd>
           </div>
           <div>
+            <dt>盛衰</dt>
+            <dd id="hud-fortune">安定 55</dd>
+          </div>
+          <div>
+            <dt>世情</dt>
+            <dd id="hud-world-event">なし</dd>
+          </div>
+          <div>
             <dt>発展</dt>
             <dd id="hud-development">0</dd>
           </div>
@@ -396,9 +407,11 @@
         <div class="world-map-tabs" role="tablist">
           <button type="button" data-world-view="japan" class="is-active">日本</button>
           <button type="button" data-world-view="world">世界</button>
+          <button type="button" data-world-view="history">履歴</button>
         </div>
         <div class="kanto-board japan-board" id="japan-board"></div>
         <div class="kanto-board earth-board" id="earth-board" hidden></div>
+        <ol class="world-history" id="world-history" hidden></ol>
       </section>
     </div>
 

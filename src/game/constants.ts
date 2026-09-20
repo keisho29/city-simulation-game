@@ -28,6 +28,7 @@ export const GameSpeed = {
   X1: 1,
   X2: 2,
   X5: 5,
+  X20: 20,
 } as const
 
 export type GameSpeed = (typeof GameSpeed)[keyof typeof GameSpeed]
@@ -159,5 +160,15 @@ export const TECH_COST_LITERACY = 18
 export const TECH_COST_INDUSTRY = 16
 export const TECH_COST_RAILWAYS = 18
 export const TECH_COST_AVIATION = 20
+export const TECH_COST_AUTOMOBILES = 18
+export const TECH_COST_ELECTRICITY = 16
+export const TECH_COST_SERVICES = 16
+export const TECH_COST_COMPUTING = 18
+export const TECH_COST_AERIAL = 22
+export const HISTORY_LIMIT = 80
+export const WORLD_EVENT_DURATION_HOURS = 72
+export const WORLD_EVENT_COOLDOWN_HOURS = 120
+export const TECH_SPREAD_HOURS = 12
+export const PROSPERITY_START = 55
 export const FARMING_HARVEST_BONUS = 1.15
 

@@ -6,7 +6,7 @@ import type { BuildingId } from '../buildings/catalog.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import type { Resident } from '../residents/resident.ts'
 import { cityDevelopment } from './development.ts'
-import { EraId, eraName, isEraId, nextEra } from './era.ts'
+import { EraId, eraAtLeast, eraName, isEraId, nextEra } from './era.ts'
 import { isTechId, TECHS, TechId, techName } from './tech.ts'
 
 export type ProgressState = {
@@ -41,7 +41,7 @@ export function canDiscover(state: ProgressState, id: TechId): boolean {
   if (hasTech(state, id)) {
     return false
   }
-  if (def.era === EraId.Meiji && state.era === EraId.Edo) {
+  if (!eraAtLeast(state.era, def.era)) {
     return false
   }
   return (def.requires ?? []).every((need) => hasTech(state, need))
@@ -84,6 +84,34 @@ export function isBuildingUnlocked(id: BuildingId, state: ProgressState): boolea
   return hasTech(state, required.id)
 }
 
+export const ERA_GATES: Record<EraId, { development: number; housed: number; techs: TechId[] }> = {
+  edo: {
+    development: ERA_ADVANCE_DEVELOPMENT,
+    housed: ERA_ADVANCE_HOUSED,
+    techs: [TechId.Farming, TechId.Trade, TechId.Craft],
+  },
+  meiji: {
+    development: 36,
+    housed: 8,
+    techs: [TechId.Industry, TechId.Railways],
+  },
+  industrial: {
+    development: 44,
+    housed: 10,
+    techs: [TechId.Automobiles, TechId.Aviation],
+  },
+  contemporary: {
+    development: 52,
+    housed: 12,
+    techs: [TechId.Services, TechId.Computing],
+  },
+  future: {
+    development: 99,
+    housed: 99,
+    techs: [],
+  },
+}
+
 export function eraAdvanceView(
   state: ProgressState,
   map: WorldMap,
@@ -94,18 +122,19 @@ export function eraAdvanceView(
     return { ready: false, missing: ['これより先の時代はまだない'] }
   }
 
+  const gate = ERA_GATES[state.era]
   const missing: string[] = []
   const development = cityDevelopment(map, residents)
-  if (development < ERA_ADVANCE_DEVELOPMENT) {
-    missing.push(`発展${ERA_ADVANCE_DEVELOPMENT}`)
+  if (development < gate.development) {
+    missing.push(`発展${gate.development}`)
   }
 
   const housed = residents.filter((resident) => resident.home).length
-  if (housed < ERA_ADVANCE_HOUSED) {
-    missing.push(`入居${ERA_ADVANCE_HOUSED}人`)
+  if (housed < gate.housed) {
+    missing.push(`入居${gate.housed}人`)
   }
 
-  for (const id of [TechId.Farming, TechId.Trade, TechId.Craft] as const) {
+  for (const id of gate.techs) {
     if (!hasTech(state, id)) {
       missing.push(techName(id))
     }

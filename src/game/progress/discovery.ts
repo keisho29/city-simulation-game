@@ -52,9 +52,12 @@ export function tickTechDiscovery(
       if (job === TileType.Factory) {
         add(TechId.Industry, gameHours * 1.4)
         add(TechId.Railways, gameHours * 0.6)
+        add(TechId.Automobiles, gameHours * 0.55)
+        add(TechId.Electricity, gameHours * 0.8)
       }
       if (job === TileType.Station) {
         add(TechId.Railways, gameHours * 1.4)
+        add(TechId.Automobiles, gameHours * 0.4)
       }
       if (job === TileType.Port) {
         add(TechId.Logistics, gameHours * 1.2)
@@ -63,12 +66,20 @@ export function tickTechDiscovery(
       if (job === TileType.Airport) {
         add(TechId.Aviation, gameHours * 1.4)
         add(TechId.Logistics, gameHours * 0.4)
+        add(TechId.Aerial, gameHours * 0.45)
+      }
+      if (job === TileType.School) {
+        add(TechId.Computing, gameHours * 0.55)
+      }
+      if (job === TileType.Shop || job === TileType.Market) {
+        add(TechId.Services, gameHours * 0.5)
       }
     }
 
     if (resident.state === ResidentState.Riding) {
       add(TechId.Railways, gameHours)
       add(TechId.Logistics, gameHours * 0.4)
+      add(TechId.Automobiles, gameHours * 0.25)
     }
 
     if (
@@ -76,10 +87,12 @@ export function tickTechDiscovery(
       (resident.state === ResidentState.Home || resident.state === ResidentState.Shopping)
     ) {
       add(TechId.Literacy, gameHours * 0.35)
+      add(TechId.Computing, gameHours * 0.2)
     }
 
     if (resident.state === ResidentState.Shopping) {
       add(TechId.Trade, gameHours * 0.8)
+      add(TechId.Services, gameHours * 0.35)
     }
   }
 

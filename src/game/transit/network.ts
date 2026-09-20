@@ -52,12 +52,13 @@ export function moveSpeedMultiplier(
   worldX: number,
   worldY: number,
   rideKind?: 'rail' | 'water',
+  speeds?: { road?: number; rail?: number; water?: number },
 ): number {
   if (rideKind === 'rail') {
-    return RAIL_SPEED_MULT
+    return speeds?.rail ?? RAIL_SPEED_MULT
   }
   if (rideKind === 'water') {
-    return WATER_SPEED_MULT
+    return speeds?.water ?? WATER_SPEED_MULT
   }
 
   const tile = map.worldToTile(worldX, worldY)
@@ -65,7 +66,7 @@ export function moveSpeedMultiplier(
     return WALK_SPEED_MULT
   }
   if (map.getTile(tile.x, tile.y)?.type === TileType.Road) {
-    return ROAD_SPEED_MULT
+    return speeds?.road ?? ROAD_SPEED_MULT
   }
   return WALK_SPEED_MULT
 }

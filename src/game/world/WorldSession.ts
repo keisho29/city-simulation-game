@@ -2,17 +2,30 @@ import {
   INACTIVE_TICK_BATCH,
   MS_PER_DAY_AT_SPEED_1,
   NEW_REGION_RESIDENT_COUNT,
+  PROSPERITY_START,
+  TECH_SPREAD_HOURS,
   type GameSpeed,
 } from '../constants.ts'
 import { createCityEvent } from '../city/events.ts'
 import type { Treasury } from '../economy/treasury.ts'
 import { WorldMap } from '../map/WorldMap.ts'
 import { createProgress, type ProgressState } from '../progress/progress.ts'
-import { TechId } from '../progress/tech.ts'
+import { isTechId, techName, TechId } from '../progress/tech.ts'
 import { residentAge, residentName } from '../residents/names.ts'
 import { createResident, type Resident } from '../residents/resident.ts'
 import { ResidentSim } from '../residents/ResidentSim.ts'
 import type { TransitStats } from '../transit/service.ts'
+import {
+  parseWorldEvent,
+  tickWorldEvents,
+  worldEventName,
+  worldGoodsMult,
+  worldHappinessDelta,
+  worldHarvestMult,
+  type WorldEventState,
+} from './events.ts'
+import { parseProsperity, tickProsperity } from './fortune.ts'
+import { parseHistory, pushHistory, type HistoryEntry } from './history.ts'
 import { tickMigration } from './migration.ts'
 import {
   CountryId,
@@ -23,10 +36,16 @@ import {
   RegionId,
   isRegionId,
   linkedRegions,
+  regionName,
   regionUnlockView,
   type RegionId as RegionIdType,
 } from './regions.ts'
 import { extraSupplyFromLinks, tickInterRegionTrade, tradeHint, type TradeMoved } from './trade.ts'
+
+type TechSpread = {
+  id: TechId
+  remainingHours: number
+}
 
 export type RegionSave = {
   id: RegionIdType
@@ -35,11 +54,15 @@ export type RegionSave = {
   residents?: Resident[]
   event?: ResidentSim['cityEvent']
   transit?: TransitStats
+  fortune?: number
 }
 
 export type WorldSave = {
   active: RegionIdType
   regions: RegionSave[]
+  worldEvent?: WorldEventState
+  history?: HistoryEntry[]
+  spreads?: TechSpread[]
 }
 
 export type RegionRuntime = {
@@ -67,15 +90,22 @@ export class WorldSession {
   readonly progress: ProgressState
   activeId: RegionIdType
   readonly regions: RegionRuntime[]
+  worldEvent: WorldEventState
+  history: HistoryEntry[]
   lastUnlocks: RegionIdType[] = []
   lastMoves: string[] = []
+  lastNews: string[] = []
   lastTrade: TradeMoved = { food: 0, wood: 0, goods: 0 }
+  private spreads: TechSpread[] = []
   private migrateHours = { hours: 0 }
   private inactiveCursor = 0
 
   constructor(progress?: ProgressState, saved?: WorldSave) {
     this.progress = progress ?? createProgress()
     this.activeId = saved?.active && isRegionId(saved.active) ? saved.active : RegionId.Edo
+    this.worldEvent = parseWorldEvent(saved?.worldEvent)
+    this.history = parseHistory(saved?.history)
+    this.spreads = parseSpreads(saved?.spreads)
     const savedRegions = new Map(
       (saved?.regions ?? [])
         .filter((entry) => isRegionId(entry.id))
@@ -86,6 +116,7 @@ export class WorldSession {
     if (!this.region(this.activeId)?.unlocked) {
       this.activeId = RegionId.Edo
     }
+    this.applyWorldEffects()
   }
 
   get active(): RegionRuntime & { map: WorldMap; sim: ResidentSim } {
@@ -117,7 +148,9 @@ export class WorldSession {
     hour: number,
     isHoliday: boolean,
     treasury?: Treasury,
+    clock?: { year: number; month: number },
   ): void {
+    this.applyWorldEffects()
     const inactive: RegionRuntime[] = []
     for (const region of this.regions) {
       if (!region.unlocked || !region.sim) {
@@ -151,6 +184,9 @@ export class WorldSession {
     }
 
     const gameHours = ((deltaMs * speed) / MS_PER_DAY_AT_SPEED_1) * 24
+    const year = clock?.year ?? 1700
+    const month = clock?.month ?? 1
+    this.tickWorldPulse(gameHours, year, month)
     this.lastTrade = tickInterRegionTrade(this.mapTable(), this.unlockedSet(), gameHours, treasury)
     this.lastMoves = tickMigration(
       this.mapTable(),
@@ -165,6 +201,10 @@ export class WorldSession {
         region.sim?.refreshJobs()
       }
     }
+  }
+
+  recordHistory(year: number, month: number, text: string): void {
+    pushHistory(this.history, year, month, text)
   }
 
   tryUnlock(): RegionIdType[] {
@@ -201,6 +241,9 @@ export class WorldSession {
   snapshot(): WorldSave {
     return {
       active: this.activeId,
+      worldEvent: this.worldEvent,
+      history: this.history,
+      spreads: this.spreads,
       regions: this.regions.map((region) => ({
         id: region.id,
         unlocked: region.unlocked,
@@ -208,6 +251,7 @@ export class WorldSession {
         residents: region.sim?.residents,
         event: region.sim?.cityEvent,
         transit: region.sim?.transit.stats,
+        fortune: region.sim?.fortune,
       })),
     }
   }
@@ -303,7 +347,7 @@ export class WorldSession {
       id,
       unlocked: true,
       map,
-      sim: this.makeSim(id, map, saved?.residents, saved?.event, saved?.transit),
+      sim: this.makeSim(id, map, saved?.residents, saved?.event, saved?.transit, saved?.fortune),
       pendingMs: 0,
     }
   }
@@ -329,12 +373,81 @@ export class WorldSession {
     residents?: Resident[],
     event?: ResidentSim['cityEvent'],
     transit?: TransitStats,
+    fortune?: number,
   ): ResidentSim {
     const sim = new ResidentSim(map, residents, event ?? createCityEvent(), this.progress, transit)
     const def = REGIONS[id]
     sim.climateHarvest = def.harvest
     sim.climateWood = def.wood
+    sim.fortune = parseProsperity(fortune ?? PROSPERITY_START)
     return sim
+  }
+
+  private applyWorldEffects(): void {
+    const harvest = worldHarvestMult(this.worldEvent)
+    const goods = worldGoodsMult(this.worldEvent)
+    const mood = worldHappinessDelta(this.worldEvent)
+    for (const region of this.regions) {
+      if (!region.sim) {
+        continue
+      }
+      region.sim.worldHarvest = harvest
+      region.sim.goodsMult = goods
+      region.sim.worldMood = mood
+    }
+  }
+
+  private tickWorldPulse(gameHours: number, year: number, month: number): void {
+    this.lastNews = []
+    const previous = this.worldEvent.kind
+    this.worldEvent = tickWorldEvents(this.worldEvent, gameHours, this.progress.era)
+    if (this.worldEvent.kind !== previous && this.worldEvent.kind !== 'none') {
+      const text = `世界で${worldEventName(this.worldEvent)}が起きた`
+      this.recordHistory(year, month, text)
+      this.lastNews.push(text)
+    }
+
+    for (const region of this.regions) {
+      if (!region.unlocked || !region.sim || !region.map) {
+        continue
+      }
+      region.sim.fortune = tickProsperity(
+        region.sim.fortune,
+        region.map,
+        region.sim.residents,
+        this.worldEvent,
+        gameHours,
+      )
+      for (const note of region.sim.lastOutflow) {
+        const text = `${regionName(region.id)}：${note}`
+        this.recordHistory(year, month, text)
+        this.lastNews.push(text)
+      }
+      region.sim.lastOutflow = []
+      for (const id of region.sim.lastDiscoveries) {
+        if (!this.spreads.some((spread) => spread.id === id)) {
+          this.spreads.push({ id, remainingHours: TECH_SPREAD_HOURS })
+        }
+      }
+    }
+
+    const remaining: TechSpread[] = []
+    for (const spread of this.spreads) {
+      const hours = spread.remainingHours - gameHours
+      if (hours <= 0) {
+        const text = `${techName(spread.id)}が各地へ伝わった`
+        this.recordHistory(year, month, text)
+        this.lastNews.push(text)
+      } else {
+        remaining.push({ id: spread.id, remainingHours: hours })
+      }
+    }
+    this.spreads = remaining
+
+    for (const id of this.lastUnlocks) {
+      const text = `${regionName(id)}が開かれた`
+      this.recordHistory(year, month, text)
+    }
   }
 
   private mapTable(): Map<RegionIdType, WorldMap> {
@@ -370,4 +483,25 @@ function starterResidents(id: RegionIdType, map: WorldMap, count: number): Resid
       worldY: spawn.y + Math.sin(angle) * map.tileSize,
     })
   })
+}
+
+function parseSpreads(raw: unknown): TechSpread[] {
+  if (!Array.isArray(raw)) {
+    return []
+  }
+  const spreads: TechSpread[] = []
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') {
+      continue
+    }
+    const record = entry as Record<string, unknown>
+    if (!isTechId(record.id) || typeof record.remainingHours !== 'number' || !Number.isFinite(record.remainingHours)) {
+      continue
+    }
+    spreads.push({
+      id: record.id,
+      remainingHours: Math.max(0, record.remainingHours),
+    })
+  }
+  return spreads
 }

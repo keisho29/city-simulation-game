@@ -10,6 +10,9 @@ import { Terrain, TileType } from '../map/tile.ts'
 import { createResident, ResidentState, type Resident, type TileRef } from '../residents/resident.ts'
 import { parseProgress, type ProgressState } from '../progress/progress.ts'
 import type { TransitStats } from '../transit/service.ts'
+import { parseWorldEvent } from '../world/events.ts'
+import { parseHistory } from '../world/history.ts'
+import { parseProsperity } from '../world/fortune.ts'
 import { RegionId, isRegionId } from '../world/regions.ts'
 import type { WorldSave } from '../world/WorldSession.ts'
 
@@ -256,8 +259,12 @@ function parseWorld(
           residents: edo.residents,
           event: edo.event,
           transit: edo.transit,
+          fortune: parseProsperity(undefined),
         },
       ],
+      worldEvent: parseWorldEvent(undefined),
+      history: [],
+      spreads: [],
     }
   }
 
@@ -281,6 +288,7 @@ function parseWorld(
       residents,
       event: parseEvent(entry.event),
       transit: parseTransit(entry.transit),
+      fortune: parseProsperity(entry.fortune),
     })
   }
 
@@ -296,7 +304,13 @@ function parseWorld(
   }
 
   const active = isRegionId(raw.active) ? raw.active : RegionId.Edo
-  return { active, regions }
+  return {
+    active,
+    regions,
+    worldEvent: parseWorldEvent(raw.worldEvent),
+    history: parseHistory(raw.history),
+    spreads: Array.isArray(raw.spreads) ? raw.spreads : [],
+  }
 }
 
 function parseEvent(raw: unknown): CityEventState {

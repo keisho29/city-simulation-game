@@ -9,6 +9,7 @@ import {
   regionUnlockView,
   type RegionId,
 } from '../world/regions.ts'
+import { historyLabel } from '../world/history.ts'
 import type { WorldSession } from '../world/WorldSession.ts'
 
 export type WorldMapUi = {
@@ -16,12 +17,13 @@ export type WorldMapUi = {
   setOpen: (open: boolean) => void
 }
 
-type BoardView = 'japan' | 'world'
+type BoardView = 'japan' | 'world' | 'history'
 
 export function bindWorldMap(onSelect: (id: RegionId) => void): WorldMapUi {
   const overlay = document.querySelector('#world-map-overlay')
   const japanBoard = document.querySelector('#japan-board')
   const earthBoard = document.querySelector('#earth-board')
+  const historyList = document.querySelector('#world-history')
   const hint = document.querySelector('#world-map-hint')
   const stats = document.querySelector('#world-map-stats')
   const openButton = document.querySelector('#open-world-map')
@@ -42,6 +44,7 @@ export function bindWorldMap(onSelect: (id: RegionId) => void): WorldMapUi {
     view = next
     japanBoard?.toggleAttribute('hidden', next !== 'japan')
     earthBoard?.toggleAttribute('hidden', next !== 'world')
+    historyList?.toggleAttribute('hidden', next !== 'history')
     for (const tab of tabs) {
       tab.classList.toggle('is-active', tab.dataset.worldView === next)
     }
@@ -59,7 +62,11 @@ export function bindWorldMap(onSelect: (id: RegionId) => void): WorldMapUi {
   })
   for (const tab of tabs) {
     tab.addEventListener('click', () => {
-      if (tab.dataset.worldView === 'world' || tab.dataset.worldView === 'japan') {
+      if (
+        tab.dataset.worldView === 'world' ||
+        tab.dataset.worldView === 'japan' ||
+        tab.dataset.worldView === 'history'
+      ) {
         setView(tab.dataset.worldView)
       }
     })
@@ -85,28 +92,35 @@ export function bindWorldMap(onSelect: (id: RegionId) => void): WorldMapUi {
         .map((region) => [region.id, region.sim!.residents]),
     )
     const census = world.census()
-    const key = `${view}|${world.activeId}|${census.unlocked}|${census.population}|${JAPAN_REGION_IDS.concat(OVERSEAS_REGION_IDS)
+    const key = `${view}|${world.activeId}|${census.unlocked}|${census.population}|${world.history.length}|${JAPAN_REGION_IDS.concat(OVERSEAS_REGION_IDS)
       .map((id) => `${id}:${Boolean(world.region(id)?.unlocked)}`)
       .join(',')}`
-    if (!force && key === lastKey && japanBoard.childElementCount > 0) {
+    if (!force && key === lastKey && japanBoard.childElementCount > 0 && view !== 'history') {
       return
     }
     lastKey = key
 
     fillBoard(japanBoard, JAPAN_REGION_IDS, 'japan', world, maps, people, onSelect, setOpen)
     fillBoard(earthBoard, [...JAPAN_REGION_IDS, ...OVERSEAS_REGION_IDS], 'world', world, maps, people, onSelect, setOpen)
+    fillHistory(historyList, world)
 
     if (stats) {
       stats.textContent = `開放 ${census.unlocked}/${census.total}都市　人口 ${census.population}　国 ${census.countries}　日本 ${census.japanUnlocked}/${census.japanTotal}　海外 ${census.overseasUnlocked}/${census.overseasTotal}`
     }
 
     if (hint) {
-      const current = REGIONS[world.activeId]
-      const links = world.linksFor(world.activeId)
-      hint.textContent =
-        links.length > 0
-          ? `${countryName(current.country)}・${areaName(current.area)}の${current.name}から${links.map((link) => regionName(link.id)).join('、')}へ行けます`
-          : `${current.name}を選んでいます。駅・港・空港で他地域とつながります。`
+      if (view === 'history') {
+        hint.textContent = world.history.length > 0
+          ? '300年分までの世界の動きがここに残ります。'
+          : 'まだ大きな歴史は残っていません。'
+      } else {
+        const current = REGIONS[world.activeId]
+        const links = world.linksFor(world.activeId)
+        hint.textContent =
+          links.length > 0
+            ? `${countryName(current.country)}・${areaName(current.area)}の${current.name}から${links.map((link) => regionName(link.id)).join('、')}へ行けます`
+            : `${current.name}を選んでいます。駅・港・空港で他地域とつながります。`
+      }
     }
   }
 
@@ -157,5 +171,23 @@ function fillBoard(
       }
     })
     board.append(button)
+  }
+}
+
+function fillHistory(list: Element | null, world: WorldSession): void {
+  if (!(list instanceof HTMLElement)) {
+    return
+  }
+  list.replaceChildren()
+  if (world.history.length === 0) {
+    const empty = document.createElement('li')
+    empty.textContent = 'まだ記録がありません'
+    list.append(empty)
+    return
+  }
+  for (const entry of [...world.history].reverse()) {
+    const item = document.createElement('li')
+    item.textContent = historyLabel(entry)
+    list.append(item)
   }
 }

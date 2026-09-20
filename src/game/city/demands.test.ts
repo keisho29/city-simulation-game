@@ -44,4 +44,12 @@ describe('city demands', () => {
     expect(demands).toContain('水不足')
     expect(demands).toContain('診療不足')
   })
+
+  it('asks for factories once the 1900s begin', () => {
+    const map = new WorldMap(5, 5, 32)
+    const residents = [createResident({ id: 'r1', home: { x: 0, y: 0 } })]
+    map.place(0, 0, TileType.House)
+    map.occupyHouse(0, 0, 'r1')
+    expect(cityDemands(map, residents, { era: 'industrial' })).toContain('工業化が遅れている')
+  })
 })

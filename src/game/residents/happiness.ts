@@ -32,6 +32,7 @@ export type HappinessContext = {
   isHoliday?: boolean
   festival?: boolean
   map?: WorldMap
+  worldMood?: number
 }
 
 export function commuteDistance(resident: Resident): number | undefined {
@@ -93,6 +94,10 @@ export function residentHappiness(
 
   if (context.festival) {
     happiness += HAPPINESS_FESTIVAL
+  }
+
+  if (context.worldMood) {
+    happiness += context.worldMood
   }
 
   if (context.map && resident.home) {

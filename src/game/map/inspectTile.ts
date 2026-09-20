@@ -1,4 +1,5 @@
 import { stockLabel } from '../economy/goods.ts'
+import { EraId } from '../progress/era.ts'
 import { connectedHubs } from '../transit/network.ts'
 import { buildingDisplayName, xpToReach } from './growth.ts'
 import { landValue } from './landValue.ts'
@@ -16,14 +17,19 @@ export type TileDetailView = {
   transit: string
 }
 
-export function tileDetailView(map: WorldMap, x: number, y: number): TileDetailView | undefined {
+export function tileDetailView(
+  map: WorldMap,
+  x: number,
+  y: number,
+  era: EraId = EraId.Edo,
+): TileDetailView | undefined {
   const tile = map.getTile(x, y)
   if (!tile) {
     return undefined
   }
 
   return {
-    name: tile.type === TileType.Vacant ? terrainDisplayName(tile.terrain) : buildingDisplayName(tile.type, tile.level, tile.variant),
+    name: tile.type === TileType.Vacant ? terrainDisplayName(tile.terrain) : buildingDisplayName(tile.type, tile.level, tile.variant, era),
     level: growableLevelLabel(tile),
     xp: growableXpLabel(tile),
     value: `${landValue(map, x, y)}`,

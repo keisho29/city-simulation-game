@@ -18,6 +18,7 @@ import {
 import { tickCityEconomy } from '../economy/circulation.ts'
 import { completeDrop, completePickup, tryStartHaul } from '../economy/logistics.ts'
 import { tickProduction } from '../economy/production.ts'
+import { eraGoodsMult, eraHarvestMult, eraMaxPopulation, eraRailSpeed, eraRoadSpeed, eraWaterSpeed, eraWoodMult } from '../progress/eraBalance.ts'
 import type { Treasury } from '../economy/treasury.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import { tickTechDiscovery } from '../progress/discovery.ts'
@@ -44,8 +45,15 @@ export class ResidentSim {
   readonly transit: TransitService
   climateHarvest = 1
   climateWood = 1
+  worldHarvest = 1
+  goodsMult = 1
+  fortune = 55
+  maxPopulation = 48
+  worldMood = 0
+  lastOutflow: string[] = []
   private readonly map: WorldMap
   private inflowHours = 0
+  private outflowHours = 0
 
   constructor(
     map: WorldMap,
@@ -115,13 +123,22 @@ export class ResidentSim {
     }
 
     const gameHours = gameHoursFromDelta(deltaMs, speed)
+    this.maxPopulation = eraMaxPopulation(this.cityProgress.era)
     this.transit.tick(this.map, deltaMs, speed, gameHours, treasury, move)
     this.cityEvent = tickCityEvents(this.cityEvent, gameHours)
     const harvest =
       harvestMultiplier(this.cityEvent) *
       (hasTech(this.cityProgress, TechId.Farming) ? FARMING_HARVEST_BONUS : 1) *
-      this.climateHarvest
-    tickProduction(this.map, gameHours, harvest, this.climateWood)
+      this.climateHarvest *
+      this.worldHarvest *
+      eraHarvestMult(this.cityProgress)
+    tickProduction(
+      this.map,
+      gameHours,
+      harvest,
+      this.climateWood * eraWoodMult(this.cityProgress),
+      this.goodsMult * eraGoodsMult(this.cityProgress),
+    )
 
     for (const resident of this.residents) {
       tickNeeds(resident, this.map, gameHours)
@@ -139,6 +156,7 @@ export class ResidentSim {
 
     this.fillOpenedSlots()
     this.tryInflow(gameHours)
+    this.tryOutflow(gameHours)
     this.lastDiscoveries = tickTechDiscovery(
       this.cityProgress,
       this.map,
@@ -152,6 +170,7 @@ export class ResidentSim {
     return {
       festival: this.cityEvent.kind === CityEventKind.Festival,
       map: this.map,
+      worldMood: this.worldMood,
     }
   }
 
@@ -172,7 +191,7 @@ export class ResidentSim {
       return
     }
     this.inflowHours = 0
-    if (!canAcceptInflow(this.map, this.residents)) {
+    if (!canAcceptInflow(this.map, this.residents, this.maxPopulation, this.fortune)) {
       return
     }
 
@@ -180,6 +199,33 @@ export class ResidentSim {
     this.residents.push(next)
     this.refreshHousing()
     this.refreshJobs()
+  }
+
+  private tryOutflow(gameHours: number): void {
+    this.lastOutflow = []
+    this.outflowHours += gameHours
+    if (this.outflowHours < INFLOW_INTERVAL_HOURS) {
+      return
+    }
+    this.outflowHours = 0
+    if (this.fortune >= 32 || this.residents.length <= 8) {
+      return
+    }
+
+    const candidate = this.residents.find(
+      (resident) => !resident.home || resident.happiness < 32,
+    )
+    if (!candidate) {
+      return
+    }
+    if (candidate.home) {
+      this.map.vacateOccupant(candidate.home.x, candidate.home.y, candidate.id)
+    }
+    if (candidate.workplace) {
+      this.map.vacateOccupant(candidate.workplace.x, candidate.workplace.y, candidate.id)
+    }
+    this.residents.splice(this.residents.indexOf(candidate), 1)
+    this.lastOutflow.push(`${candidate.name}が町を出た`)
   }
 
   private walkTowardGoal(
@@ -194,7 +240,11 @@ export class ResidentSim {
     const rideKind = resident.state === ResidentState.Riding ? resident.rideKind : undefined
     const step =
       RESIDENT_MOVE_SPEED *
-      moveSpeedMultiplier(this.map, resident.worldX, resident.worldY, rideKind) *
+      moveSpeedMultiplier(this.map, resident.worldX, resident.worldY, rideKind, {
+        road: eraRoadSpeed(this.cityProgress),
+        rail: eraRailSpeed(this.cityProgress),
+        water: eraWaterSpeed(this.cityProgress),
+      }) *
       (speed / 1) *
       (deltaMs / 1000)
 

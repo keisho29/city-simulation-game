@@ -619,9 +619,102 @@ body[data-era='meiji'] .hud-clock {
   text-shadow: 1px 1px 0 #163a62;
 }
 
-body[data-era='meiji'] .panel-card h2 {
-  background: linear-gradient(#4aa0d4, #2f78b0);
-  text-shadow: 1px 1px 0 #163a62;
+#speed-menu button[data-speed='20'] {
+  width: 30px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+body[data-era='industrial'] {
+  --panel-dark: #6a5a48;
+}
+
+body[data-era='industrial'] .hud-date-bar {
+  border-color: #3a3228;
+  background: linear-gradient(#8a7a62, #5a4e3e);
+}
+
+body[data-era='industrial'] .hud-crest {
+  background: radial-gradient(circle at 35% 30%, #d8c8a8, #6a5a40);
+  box-shadow: 0 1px 0 #2a2218;
+}
+
+body[data-era='industrial'] .hud-date,
+body[data-era='industrial'] .hud-clock {
+  text-shadow: 1px 1px 0 #2a2218;
+}
+
+body[data-era='industrial'] .panel-card h2 {
+  background: linear-gradient(#8a7a62, #5a4e3e);
+  text-shadow: 1px 1px 0 #2a2218;
+}
+
+body[data-era='contemporary'] {
+  --panel-dark: #3a6a78;
+}
+
+body[data-era='contemporary'] .hud-date-bar {
+  border-color: #1e4a58;
+  background: linear-gradient(#4aa0b0, #2f6a78);
+}
+
+body[data-era='contemporary'] .hud-crest {
+  background: radial-gradient(circle at 35% 30%, #9adce8, #3a7888);
+  box-shadow: 0 1px 0 #163a42;
+}
+
+body[data-era='contemporary'] .hud-date,
+body[data-era='contemporary'] .hud-clock {
+  text-shadow: 1px 1px 0 #163a42;
+}
+
+body[data-era='contemporary'] .panel-card h2 {
+  background: linear-gradient(#4aa0b0, #2f6a78);
+  text-shadow: 1px 1px 0 #163a42;
+}
+
+body[data-era='future'] {
+  --panel-dark: #2a8a7a;
+}
+
+body[data-era='future'] .hud-date-bar {
+  border-color: #14685c;
+  background: linear-gradient(#4ad4c0, #1e8a78);
+}
+
+body[data-era='future'] .hud-crest {
+  background: radial-gradient(circle at 35% 30%, #c8fff4, #2aa090);
+  box-shadow: 0 1px 0 #0e4a42;
+}
+
+body[data-era='future'] .hud-date,
+body[data-era='future'] .hud-clock {
+  text-shadow: 1px 1px 0 #0e4a42;
+}
+
+body[data-era='future'] .panel-card h2 {
+  background: linear-gradient(#4ad4c0, #1e8a78);
+  text-shadow: 1px 1px 0 #0e4a42;
+}
+
+.world-history {
+  max-height: 280px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  overflow: auto;
+  border: 2px solid #5a3a18;
+  border-radius: 12px;
+  background: #fff8dc;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.55;
+  list-style: none;
+}
+
+.world-history li + li {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #e0d0a0;
 }
 
 .hud-hint {

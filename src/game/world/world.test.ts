@@ -148,6 +148,8 @@ describe('world session', () => {
     })
     expect(parsed?.world.active).toBe(RegionId.Edo)
     expect(parsed?.world.regions[0]?.id).toBe(RegionId.Edo)
+    expect(parsed?.world.history).toEqual([])
+    expect(parsed?.world.worldEvent?.kind).toBe('none')
     expect(world.region(RegionId.London)?.unlocked).toBe(false)
   })
 
@@ -197,6 +199,27 @@ describe('world session', () => {
       1,
     )
     expect(moved.food).toBeGreaterThan(0)
+  })
+
+  it('treats later eras as enough to open Meiji-gated overseas ports', () => {
+    const progress = createProgress({
+      era: EraId.Industrial,
+      discovered: [TechId.Trade, TechId.Logistics, TechId.Industry, TechId.Railways],
+    })
+    const world = new WorldSession(progress)
+    world.region(RegionId.Nagasaki)!.unlocked = true
+    world.mapOf(RegionId.Nagasaki)
+    expect(world.tryUnlock()).toContain(RegionId.Naha)
+  })
+
+  it('records world history and keeps prosperity on a long tick', () => {
+    const world = new WorldSession()
+    expect(world.history).toEqual([])
+    expect(world.worldEvent.kind).toBe('none')
+    expect(world.active.sim.fortune).toBeGreaterThanOrEqual(8)
+    world.tick(3 * 60 * 1000, GameSpeed.X20, 12, false, undefined, { year: 1700, month: 1 })
+    expect(world.active.sim.fortune).toBeGreaterThanOrEqual(8)
+    expect(world.history.length).toBeLessThanOrEqual(80)
   })
 })
 

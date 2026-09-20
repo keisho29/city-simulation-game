@@ -13,6 +13,7 @@ export function tickProduction(
   gameHours: number,
   harvestMult = 1,
   woodMult = 1,
+  goodsMult = 1,
 ): void {
   if (gameHours <= 0) {
     return
@@ -44,7 +45,7 @@ export function tickProduction(
         x,
         y,
         StockKind.Wood,
-        GOODS_PER_WORKER_HOUR * 1.5 * workers * gameHours,
+        GOODS_PER_WORKER_HOUR * 1.5 * workers * goodsMult * gameHours,
       )
       if (converted > 0) {
         map.addStock(x, y, StockKind.Goods, converted)
@@ -70,7 +71,7 @@ export function tickProduction(
         x,
         y,
         StockKind.Wood,
-        GOODS_PER_WORKER_HOUR * workers * gameHours,
+        GOODS_PER_WORKER_HOUR * workers * goodsMult * gameHours,
       )
       if (converted > 0) {
         map.addStock(x, y, StockKind.Goods, converted)

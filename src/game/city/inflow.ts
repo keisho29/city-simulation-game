@@ -4,8 +4,16 @@ import { averageHappiness } from '../residents/happiness.ts'
 import { residentAge, residentName } from '../residents/names.ts'
 import { createResident, type Resident } from '../residents/resident.ts'
 
-export function canAcceptInflow(map: WorldMap, residents: readonly Resident[]): boolean {
-  if (residents.length >= MAX_POPULATION) {
+export function canAcceptInflow(
+  map: WorldMap,
+  residents: readonly Resident[],
+  maxPopulation = MAX_POPULATION,
+  fortune = 100,
+): boolean {
+  if (residents.length >= maxPopulation) {
+    return false
+  }
+  if (fortune < 35) {
     return false
   }
   if (map.vacantHouseSlots() <= 0) {
