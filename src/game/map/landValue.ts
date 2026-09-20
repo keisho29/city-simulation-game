@@ -51,11 +51,18 @@ function neighborScore(type: TileType, level: number, distance: number): number 
     case TileType.House:
       return 3 * level * falloff
     case TileType.Shop:
+    case TileType.Market:
       return 6 * level * falloff
     case TileType.Workshop:
       return 5 * level * falloff
     case TileType.Farm:
       return 2 * level * falloff
+    case TileType.Warehouse:
+      return 3 * level * falloff
+    case TileType.Clinic:
+      return 4 * level * falloff
+    case TileType.Well:
+      return 3 * falloff
     default:
       return 0
   }

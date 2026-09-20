@@ -1,7 +1,10 @@
 import {
+  CLINIC_RADIUS,
   HAPPINESS_BASE,
   HAPPINESS_BROKE,
+  HAPPINESS_CLINIC,
   HAPPINESS_COMFORTABLE,
+  HAPPINESS_FESTIVAL,
   HAPPINESS_HAS_JOB,
   HAPPINESS_HOLIDAY_REST,
   HAPPINESS_HUNGRY,
@@ -10,6 +13,7 @@ import {
   HAPPINESS_NO_JOB,
   HAPPINESS_SHORT_COMMUTE,
   HAPPINESS_STARVING,
+  HAPPINESS_WELL,
   HAPPINESS_WELL_FED,
   HUNGER_HUNGRY,
   HUNGER_STARVING,
@@ -18,11 +22,16 @@ import {
   MONEY_COMFORTABLE,
   SHOP_PRICE,
   SHORT_COMMUTE_DISTANCE,
+  WELL_RADIUS,
 } from '../constants.ts'
+import { TileType } from '../map/tile.ts'
+import type { WorldMap } from '../map/WorldMap.ts'
 import { ResidentState, type Resident } from './resident.ts'
 
 export type HappinessContext = {
   isHoliday?: boolean
+  festival?: boolean
+  map?: WorldMap
 }
 
 export function commuteDistance(resident: Resident): number | undefined {
@@ -80,6 +89,32 @@ export function residentHappiness(
       resident.state === ResidentState.MovingToShop)
   ) {
     happiness += HAPPINESS_HOLIDAY_REST
+  }
+
+  if (context.festival) {
+    happiness += HAPPINESS_FESTIVAL
+  }
+
+  if (context.map && resident.home) {
+    const well = context.map.findNearest(resident.home, (tile, x, y) => {
+      return (
+        tile.type === TileType.Well &&
+        Math.abs(x - resident.home!.x) + Math.abs(y - resident.home!.y) <= WELL_RADIUS
+      )
+    })
+    if (well) {
+      happiness += HAPPINESS_WELL
+    }
+
+    const clinic = context.map.findNearest(resident.home, (tile, x, y) => {
+      return (
+        tile.type === TileType.Clinic &&
+        Math.abs(x - resident.home!.x) + Math.abs(y - resident.home!.y) <= CLINIC_RADIUS
+      )
+    })
+    if (clinic) {
+      happiness += HAPPINESS_CLINIC
+    }
   }
 
   return Math.max(0, Math.min(100, happiness))

@@ -1,6 +1,8 @@
+import { stockLabel } from '../economy/goods.ts'
 import { buildingDisplayName, xpToReach } from './growth.ts'
 import { landValue } from './landValue.ts'
-import { TileType, type Tile } from './tile.ts'
+import { terrainDisplayName } from './landscape.ts'
+import { isWorkplaceType, TileType, type Tile } from './tile.ts'
 import type { WorldMap } from './WorldMap.ts'
 
 export type TileDetailView = {
@@ -9,6 +11,7 @@ export type TileDetailView = {
   xp: string
   value: string
   capacity: string
+  stock: string
 }
 
 export function tileDetailView(map: WorldMap, x: number, y: number): TileDetailView | undefined {
@@ -18,11 +21,12 @@ export function tileDetailView(map: WorldMap, x: number, y: number): TileDetailV
   }
 
   return {
-    name: buildingDisplayName(tile.type, tile.level, tile.variant),
+    name: tile.type === TileType.Vacant ? terrainDisplayName(tile.terrain) : buildingDisplayName(tile.type, tile.level, tile.variant),
     level: growableLevelLabel(tile),
     xp: growableXpLabel(tile),
     value: `${landValue(map, x, y)}`,
     capacity: capacityLabel(tile),
+    stock: stockLabel(tile),
   }
 }
 
@@ -48,7 +52,7 @@ function capacityLabel(tile: Tile): string {
   if (tile.type === TileType.House) {
     return `住居 ${tile.occupantIds.length}/${tile.level}`
   }
-  if (tile.type === TileType.Farm || tile.type === TileType.Shop || tile.type === TileType.Workshop) {
+  if (isWorkplaceType(tile.type)) {
     return `仕事 ${tile.occupantIds.length}/${tile.level}`
   }
   return '-'

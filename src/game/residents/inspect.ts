@@ -12,6 +12,8 @@ export const RESIDENT_STATE_LABELS: Record<ResidentState, string> = {
   [ResidentState.MovingToHome]: '帰宅中',
   [ResidentState.MovingToShop]: '買い物へ向かっている',
   [ResidentState.Shopping]: '買い物中',
+  [ResidentState.MovingToPickup]: '荷物を取りに行っている',
+  [ResidentState.Hauling]: '荷物を運んでいる',
 }
 
 export type ResidentDetailView = {
@@ -39,6 +41,12 @@ export function workplaceLabel(type: TileType | undefined): string {
       return '商店'
     case TileType.Workshop:
       return '工房'
+    case TileType.Market:
+      return '市場'
+    case TileType.Warehouse:
+      return '倉庫'
+    case TileType.Clinic:
+      return '診療所'
     default:
       return '未就職'
   }
@@ -80,7 +88,9 @@ export function pickResidentOnTile(
     (resident) =>
       (resident.home?.x === tile.x && resident.home.y === tile.y) ||
       (resident.workplace?.x === tile.x && resident.workplace.y === tile.y) ||
-      (resident.shopTarget?.x === tile.x && resident.shopTarget.y === tile.y),
+      (resident.shopTarget?.x === tile.x && resident.shopTarget.y === tile.y) ||
+      (resident.haulPickup?.x === tile.x && resident.haulPickup.y === tile.y) ||
+      (resident.haulDrop?.x === tile.x && resident.haulDrop.y === tile.y),
   )
 }
 

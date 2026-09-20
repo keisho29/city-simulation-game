@@ -20,11 +20,17 @@ export const TILE_ATLAS_ORDER = [
   'rock',
   'tuft',
   'stump',
+  'water',
+  'river',
   ...Array.from({ length: ROAD_COUNT }, (_, index) => `road-${index}`),
   'house',
   'farm',
   'shop',
   'workshop',
+  'market',
+  'well',
+  'warehouse',
+  'clinic',
 ] as const
 
 export type TileAtlasKey = (typeof TILE_ATLAS_ORDER)[number]
@@ -75,6 +81,12 @@ const LAND: PixelSprite['palette'] = {
   J: 0xb0b6be,
   j: 0x747c86,
   L: 0xe6e2cc,
+  u: 0x3b86c4,
+  U: 0x62b4e4,
+  p: 0x8fd0f2,
+  d: 0x246a9a,
+  F: 0x2f8a9c,
+  f: 0x4aa8b8,
 }
 
 function rnd(seed: number, salt: number): number {
@@ -137,16 +149,16 @@ function makeWasteland(): PixelSprite {
 }
 
 function makeRoad(mask: number): PixelSprite {
-  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE, 'Q')
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE, '7')
   for (let y = 0; y < TILE_ART_SIZE; y += 1) {
     for (let x = 0; x < TILE_ART_SIZE; x += 1) {
       const n = rnd(mask + 1, x * 32 + y) % 100
-      canvas.set(x, y, n < 22 ? 'q' : n < 55 ? 'Q' : n < 82 ? 'J' : 'j')
+      canvas.set(x, y, n < 20 ? '8' : n < 48 ? '7' : n < 72 ? '6' : n < 88 ? '9' : 'a')
     }
   }
 
-  canvas.fillRect(0, 0, TILE_ART_SIZE, 1, 'j')
-  canvas.fillRect(0, 0, 1, TILE_ART_SIZE, 'j')
+  canvas.fillRect(0, 0, TILE_ART_SIZE, 1, '8')
+  canvas.fillRect(0, 0, 1, TILE_ART_SIZE, '8')
   return canvas.toSprite(LAND)
 }
 
@@ -200,6 +212,38 @@ function makeRock(): PixelSprite {
   canvas.fillCircle(20, 21, 3, 'S')
   canvas.set(10, 17, 'S')
   canvas.set(18, 19, '#')
+  return canvas.toSprite(LAND)
+}
+
+function makeWater(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE, 'u')
+  for (let i = 0; i < 8; i += 1) {
+    canvas.fillCircle(
+      4 + (rnd(41, i) % 24),
+      4 + (rnd(43, i) % 24),
+      3 + (rnd(47, i) % 5),
+      i % 2 === 0 ? 'U' : 'd',
+    )
+  }
+  for (let i = 0; i < 18; i += 1) {
+    canvas.set(rnd(53, i) % 32, rnd(59, i) % 32, i % 3 === 0 ? 'p' : 'U')
+  }
+  canvas.fillRect(0, 0, TILE_ART_SIZE, 1, 'd')
+  canvas.fillRect(0, 0, 1, TILE_ART_SIZE, 'd')
+  return canvas.toSprite(LAND)
+}
+
+function makeRiver(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE, 'F')
+  for (let y = 0; y < TILE_ART_SIZE; y += 1) {
+    for (let x = 0; x < TILE_ART_SIZE; x += 1) {
+      const wave = Math.sin((y + x * 0.35) * 0.45)
+      canvas.set(x, y, wave > 0.35 ? 'f' : wave < -0.2 ? 'd' : 'F')
+    }
+  }
+  for (let i = 0; i < 10; i += 1) {
+    canvas.set(rnd(61, i) % 32, rnd(67, i) % 32, 'p')
+  }
   return canvas.toSprite(LAND)
 }
 
@@ -309,6 +353,81 @@ function makeWorkshop(): PixelSprite {
   return canvas.toSprite(LAND)
 }
 
+function makeMarket(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE)
+  canvas.fillRect(4, 26, 24, 5, '7')
+  canvas.fillRect(5, 22, 22, 5, '8')
+  canvas.fillRect(6, 8, 3, 15, 'K')
+  canvas.fillRect(23, 8, 3, 15, 'K')
+  canvas.fillRect(5, 6, 22, 5, 'M')
+  canvas.fillRect(6, 7, 20, 3, 'K')
+  canvas.fillRect(7, 12, 18, 8, 'A')
+  for (let x = 8; x < 24; x += 2) {
+    canvas.fillRect(x, 12, 1, 8, 'B')
+  }
+  canvas.fillRect(8, 21, 5, 4, 'o')
+  canvas.fillRect(14, 21, 5, 4, 'g')
+  canvas.fillRect(20, 21, 5, 4, 'o')
+  outlineRect(canvas, 8, 21, 5, 4, '#')
+  outlineRect(canvas, 14, 21, 5, 4, '#')
+  outlineRect(canvas, 20, 21, 5, 4, '#')
+  return canvas.toSprite(LAND)
+}
+
+function makeWell(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE)
+  canvas.fillRect(8, 26, 16, 4, '7')
+  canvas.fillRect(10, 8, 3, 12, 'K')
+  canvas.fillRect(19, 8, 3, 12, 'K')
+  canvas.fillRect(8, 5, 16, 5, 'M')
+  canvas.fillRect(9, 6, 14, 3, 'K')
+  canvas.fillCircle(16, 20, 7, 'R')
+  canvas.fillCircle(16, 20, 5, 'r')
+  canvas.fillCircle(16, 20, 3, 'u')
+  canvas.fillRect(15, 12, 2, 6, 'T')
+  canvas.fillRect(13, 17, 6, 2, 't')
+  return canvas.toSprite(LAND)
+}
+
+function makeWarehouse(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE)
+  canvas.fillRect(6, 26, 20, 5, '7')
+  canvas.fillRect(6, 12, 20, 15, 'L')
+  canvas.fillRect(7, 13, 18, 13, 'N')
+  outlineRect(canvas, 6, 12, 20, 15, '#')
+  for (let i = 0; i < 8; i += 1) {
+    const width = 24 - i
+    canvas.fillRect(4 + Math.floor(i / 2), 4 + i, width, 1, i < 3 ? '#' : 'K')
+  }
+  canvas.fillRect(14, 20, 4, 7, 'D')
+  canvas.fillRect(9, 16, 3, 3, 'I')
+  canvas.fillRect(20, 16, 3, 3, 'I')
+  canvas.fillRect(14, 14, 4, 4, 'A')
+  canvas.set(15, 15, 'B')
+  canvas.set(16, 16, 'B')
+  return canvas.toSprite(LAND)
+}
+
+function makeClinic(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE)
+  canvas.fillRect(8, 26, 16, 4, '7')
+  canvas.fillRect(6, 14, 20, 13, 'N')
+  canvas.fillRect(7, 15, 18, 11, 'n')
+  outlineRect(canvas, 6, 14, 20, 13, '#')
+  for (let i = 0; i < 10; i += 1) {
+    const width = 22 - i
+    canvas.fillRect(5 + Math.floor(i / 2), 6 + i, width, 1, i < 3 ? 'K' : 'M')
+  }
+  canvas.fillRect(8, 16, 16, 6, 'B')
+  for (let x = 9; x < 23; x += 2) {
+    canvas.fillRect(x, 16, 1, 6, 'g')
+  }
+  canvas.fillRect(14, 21, 4, 6, 'D')
+  canvas.fillRect(22, 12, 3, 5, 'o')
+  canvas.fillRect(23, 11, 1, 2, 'A')
+  return canvas.toSprite(LAND)
+}
+
 function buildSprites(): Record<TileAtlasKey, PixelSprite> {
   const sprites = {
     'grass-base': makeGrass('base'),
@@ -322,10 +441,16 @@ function buildSprites(): Record<TileAtlasKey, PixelSprite> {
     rock: makeRock(),
     tuft: makeTuft(),
     stump: makeStump(),
+    water: makeWater(),
+    river: makeRiver(),
     house: makeHouse(),
     farm: makeFarm(),
     shop: makeShop(),
     workshop: makeWorkshop(),
+    market: makeMarket(),
+    well: makeWell(),
+    warehouse: makeWarehouse(),
+    clinic: makeClinic(),
   } as Record<TileAtlasKey, PixelSprite>
 
   for (let index = 0; index < ROAD_COUNT; index += 1) {
@@ -347,13 +472,17 @@ export const TILES_NEEDING_GRASS: ReadonlySet<TileAtlasKey> = new Set([
   'farm',
   'shop',
   'workshop',
+  'market',
+  'well',
+  'warehouse',
+  'clinic',
 ])
 
 export function vacantTileKey(_x: number, _y: number): TileAtlasKey {
   return 'grass-base'
 }
 
-export type DecoKind = 'tree' | 'bush' | 'flower'
+export type DecoKind = 'flower'
 
 export type PropLayout = {
   width: number
@@ -367,21 +496,22 @@ export const PROP_LAYOUT: Record<string, PropLayout> = {
   shop: { width: 1.8, height: 2.2, originX: 0.5, originY: 0.94 },
   workshop: { width: 1.75, height: 2.3, originX: 0.5, originY: 0.94 },
   farm: { width: 1.25, height: 1.2, originX: 0.5, originY: 0.84 },
-  tree: { width: 1.4, height: 2.05, originX: 0.5, originY: 0.96 },
-  bush: { width: 1.25, height: 1.85, originX: 0.5, originY: 0.96 },
+  market: { width: 1.85, height: 2.15, originX: 0.5, originY: 0.94 },
+  well: { width: 1.15, height: 1.55, originX: 0.5, originY: 0.94 },
+  warehouse: { width: 1.7, height: 2.25, originX: 0.5, originY: 0.94 },
+  clinic: { width: 1.7, height: 2.25, originX: 0.5, originY: 0.94 },
+  tree: { width: 1.15, height: 1.55, originX: 0.5, originY: 0.96 },
+  bush: { width: 1.1, height: 1.35, originX: 0.5, originY: 0.96 },
   flower: { width: 0.45, height: 0.45, originX: 0.5, originY: 0.78 },
+  rock: { width: 1.2, height: 1.05, originX: 0.5, originY: 0.9 },
+  water: { width: 1, height: 1, originX: 0.5, originY: 0.5 },
+  river: { width: 1, height: 1, originX: 0.5, originY: 0.5 },
   road: { width: 1, height: 1, originX: 0.5, originY: 0.5 },
 }
 
 export function decoKind(x: number, y: number): DecoKind | undefined {
   const deco = hash32(x * 73856093 + y * 19349663 + 17)
-  if (deco % 23 === 0) {
-    return 'tree'
-  }
-  if (deco % 31 === 0) {
-    return 'bush'
-  }
-  if (deco % 9 === 0) {
+  if (deco % 11 === 0) {
     return 'flower'
   }
   return undefined
@@ -407,6 +537,14 @@ export function buildingTileKey(type: TileType, connections = 0): TileAtlasKey |
       return 'shop'
     case TileType.Workshop:
       return 'workshop'
+    case TileType.Market:
+      return 'market'
+    case TileType.Well:
+      return 'well'
+    case TileType.Warehouse:
+      return 'warehouse'
+    case TileType.Clinic:
+      return 'clinic'
     default:
       return undefined
   }

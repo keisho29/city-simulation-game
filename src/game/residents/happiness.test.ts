@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { averageHappiness, residentHappiness } from './happiness.ts'
 import { createResident, ResidentState } from './resident.ts'
+import { TileType } from '../map/tile.ts'
+import { WorldMap } from '../map/WorldMap.ts'
 
 describe('residentHappiness', () => {
   it('is lower without a home or job', () => {
@@ -51,6 +53,18 @@ describe('residentHappiness', () => {
     })
     expect(residentHappiness(resident, { isHoliday: true })).toBeGreaterThan(
       residentHappiness(resident, { isHoliday: false }),
+    )
+  })
+
+  it('rises during a festival and near a well', () => {
+    const map = new WorldMap(8, 8, 32)
+    map.place(1, 0, TileType.Well)
+    const resident = createResident({
+      home: { x: 0, y: 0 },
+      workplace: { x: 1, y: 0 },
+    })
+    expect(residentHappiness(resident, { map, festival: true })).toBeGreaterThan(
+      residentHappiness(resident),
     )
   })
 })

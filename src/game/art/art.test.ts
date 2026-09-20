@@ -33,20 +33,20 @@ describe('tile art', () => {
   it('picks a stable vacant tile for the same coordinates', () => {
     expect(vacantTileKey(3, 8)).toBe(vacantTileKey(3, 8))
     expect(buildingTileKey(TileType.House)).toBe('house')
+    expect(buildingTileKey(TileType.Market)).toBe('market')
+    expect(buildingTileKey(TileType.Well)).toBe('well')
+    expect(buildingTileKey(TileType.Warehouse)).toBe('warehouse')
+    expect(buildingTileKey(TileType.Clinic)).toBe('clinic')
     expect(buildingTileKey(TileType.Road, 3)).toBe('road-3')
     expect(buildingTileKey(TileType.Vacant)).toBeUndefined()
   })
 
-  it('keeps vacant ground as grass, with optional scenery on top', () => {
+  it('keeps vacant ground as grass, with optional flowers on top', () => {
     expect(vacantTileKey(3, 8)).toBe('grass-base')
     expect(vacantTileKey(9, 2)).toBe('grass-base')
     const kinds = Array.from({ length: 80 }, (_, i) => decoKind(i % 10, Math.floor(i / 10)))
-    expect(kinds.some((kind) => kind === 'tree')).toBe(true)
-    expect(
-      kinds.every(
-        (kind) => kind === undefined || kind === 'tree' || kind === 'bush' || kind === 'flower',
-      ),
-    ).toBe(true)
+    expect(kinds.some((kind) => kind === 'flower')).toBe(true)
+    expect(kinds.every((kind) => kind === undefined || kind === 'flower')).toBe(true)
   })
 })
 

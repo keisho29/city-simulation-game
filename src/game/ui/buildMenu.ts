@@ -11,11 +11,19 @@ type BuildMenuHandlers = {
   onPaintModeChange: (mode: PaintMode) => void
 }
 
-export function bindBuildMenu(handlers: BuildMenuHandlers): void {
+export type BuildMenu = {
+  setTool: (tool: BuildTool) => void
+  setPaintMode: (mode: PaintMode) => void
+}
+
+export function bindBuildMenu(handlers: BuildMenuHandlers): BuildMenu {
   const menu = document.querySelector('#build-menu')
   const hint = document.querySelector('#hud-hint')
   if (!(menu instanceof HTMLElement)) {
-    return
+    return {
+      setTool: handlers.onToolChange,
+      setPaintMode: handlers.onPaintModeChange,
+    }
   }
 
   const toolButtons = menu.querySelectorAll<HTMLButtonElement>('[data-tool]')
@@ -97,4 +105,5 @@ export function bindBuildMenu(handlers: BuildMenuHandlers): void {
 
   setPaintMode(PaintMode.Click)
   setTool(BuildTool.None)
+  return { setTool, setPaintMode }
 }

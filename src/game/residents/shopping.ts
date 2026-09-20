@@ -19,7 +19,9 @@ export function maybeStartShopping(
     resident.state === ResidentState.Working ||
     resident.state === ResidentState.MovingToShop ||
     resident.state === ResidentState.Shopping ||
-    resident.state === ResidentState.MovingToHome
+    resident.state === ResidentState.MovingToHome ||
+    resident.state === ResidentState.MovingToPickup ||
+    resident.state === ResidentState.Hauling
   ) {
     return
   }
@@ -37,7 +39,7 @@ export function maybeStartShopping(
     return
   }
 
-  const shop = map.findNearestShop(resident.home)
+  const shop = map.findNearestShop(resident.home, { minFood: 1 })
   if (!shop) {
     return
   }
@@ -48,7 +50,7 @@ export function maybeStartShopping(
 
 export function finishShopping(resident: Resident, map?: WorldMap, treasury?: Treasury): void {
   const shop = resident.shopTarget
-  const bought = buyFood(resident)
+  const bought = buyFood(resident, map, shop)
   if (bought && shop && map) {
     map.grantXp(shop.x, shop.y, BUILDING_XP_SHOP_VISIT)
   }

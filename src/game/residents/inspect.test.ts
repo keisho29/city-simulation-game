@@ -35,7 +35,7 @@ describe('resident inspect', () => {
     expect(view.money).toBe('18')
     expect(view.happiness).toBe('80%')
     expect(residentStateLabel(ResidentState.MovingToWork)).toBe('出勤中')
-    expect(residentStateLabel(ResidentState.MovingToShop)).toBe('買い物へ向かっている')
+    expect(residentStateLabel(ResidentState.Hauling)).toBe('荷物を運んでいる')
     expect(workplaceLabel(undefined)).toBe('未就職')
   })
 

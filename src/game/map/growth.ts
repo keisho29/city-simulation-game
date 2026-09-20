@@ -65,6 +65,18 @@ export function buildingDisplayName(type: TileType, level: number, variant: numb
   if (type === TileType.Farm) {
     return level >= 3 ? '豊かな田畑' : level === 2 ? '整った畑' : '農地'
   }
+  if (type === TileType.Market) {
+    return level >= 3 ? '大きな市場' : level === 2 ? '賑わう市場' : '市場'
+  }
+  if (type === TileType.Well) {
+    return '井戸'
+  }
+  if (type === TileType.Warehouse) {
+    return level >= 3 ? '大きな土蔵' : level === 2 ? '土蔵' : '倉庫'
+  }
+  if (type === TileType.Clinic) {
+    return level >= 3 ? '大きな診療所' : level === 2 ? '町の診療所' : '診療所'
+  }
   if (type === TileType.Road) {
     return '道路'
   }
@@ -85,11 +97,17 @@ export function buildingTint(type: TileType | undefined, level: number, variant:
     }
     return level >= 3 ? 0xffe8a8 : 0xffefd0
   }
-  if (type === TileType.Shop) {
+  if (type === TileType.Shop || type === TileType.Market) {
     return level >= 3 ? 0xffcc70 : 0xffe0a0
   }
   if (type === TileType.Workshop) {
     return level >= 3 ? 0xc0c0e8 : 0xd8d8f0
+  }
+  if (type === TileType.Warehouse) {
+    return level >= 3 ? 0xfff4d0 : 0xfff8e8
+  }
+  if (type === TileType.Clinic) {
+    return level >= 3 ? 0xc8f0d8 : 0xe0f8e8
   }
   return level >= 3 ? 0xd0ff90 : 0xe8ffb0
 }

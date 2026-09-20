@@ -1,5 +1,5 @@
 import Phaser from 'phaser'
-import { createWorldArt, GRASS_CELL_PX, GRASS_TEXTURE_KEY, preloadWorldArt, PROP_TEXTURE, residentTextureKey, ROAD_TEXTURE_KEY, textureForProp } from '../art/createWorldArt.ts'
+import { createWorldArt, GRASS_CELL_PX, GRASS_TEXTURE_KEY, preloadWorldArt, PROP_TEXTURE, residentTextureKey, ROAD_TEXTURE_KEY, WATER_TEXTURE_KEY, textureForProp } from '../art/createWorldArt.ts'
 import {
   RESIDENT_DISPLAY_HEIGHT,
   RESIDENT_DISPLAY_WIDTH,
@@ -16,6 +16,7 @@ import {
 import {
   BUILDING_SCALE_PER_LEVEL,
   DEV_FREEZE_FUNDS,
+  GameSpeed,
   INITIAL_FUNDS,
   START_VIEW_TILES,
   ZOOM_STEP,
@@ -23,22 +24,26 @@ import {
 } from '../constants.ts'
 import { Treasury } from '../economy/treasury.ts'
 import { cityDemands } from '../city/demands.ts'
+import { eventDisplayName } from '../city/events.ts'
+import { StockKind } from '../economy/goods.ts'
 import { buildingTint } from '../map/growth.ts'
 import { tileDetailView } from '../map/inspectTile.ts'
 import { averageLandValue } from '../map/landValue.ts'
-import { isGrowableType, TileType } from '../map/tile.ts'
+import { isGrowableType, isWaterTerrain, Terrain, TileType } from '../map/tile.ts'
 import { WorldMap } from '../map/WorldMap.ts'
 import { inspectResident, residentDetailView } from '../residents/inspect.ts'
 import { ResidentSim } from '../residents/ResidentSim.ts'
 import {
   SAVE_VERSION,
+  clearSnapshot,
   loadSnapshot,
   writeSnapshot,
 } from '../save/save.ts'
 import { GameTime } from '../time/gameTime.ts'
-import { bindBuildMenu } from '../ui/buildMenu.ts'
+import { bindBuildMenu, type BuildMenu } from '../ui/buildMenu.ts'
+import { bindClearGame } from '../ui/clearGame.ts'
 import { bindResidentPanel } from '../ui/residentPanel.ts'
-import { bindSpeedMenu } from '../ui/speedMenu.ts'
+import { bindSpeedMenu, type SpeedMenu } from '../ui/speedMenu.ts'
 
 const MAP_EDGE = 0x3d7a18
 const HOVER_VALID = 0xfff1a8
@@ -52,6 +57,7 @@ export class MainScene extends Phaser.Scene {
   private tileSprites: Phaser.GameObjects.Image[] = []
   private propSprites: Phaser.GameObjects.Image[] = []
   private grassField: Phaser.GameObjects.TileSprite | undefined
+  private mapEdge: Phaser.GameObjects.Graphics | undefined
   private hoverGraphics: Phaser.GameObjects.Graphics | undefined
   private hoverPreview: Phaser.GameObjects.Image | undefined
   private selectedTool: BuildTool = BuildTool.None
@@ -68,6 +74,10 @@ export class MainScene extends Phaser.Scene {
   private fundsNote: HTMLElement | null = null
   private landValueLabel: HTMLElement | null = null
   private demandsLabel: HTMLElement | null = null
+  private foodLabel: HTMLElement | null = null
+  private woodLabel: HTMLElement | null = null
+  private goodsLabel: HTMLElement | null = null
+  private eventLabel: HTMLElement | null = null
   private residentSim: ResidentSim | undefined
   private treasury = new Treasury(INITIAL_FUNDS)
   private residentMarkers: Phaser.GameObjects.Image[] = []
@@ -77,6 +87,8 @@ export class MainScene extends Phaser.Scene {
   private lastBuildingLevel = new Uint8Array(0)
   private inspectGraphics: Phaser.GameObjects.Graphics | undefined
   private residentPanel = bindResidentPanel()
+  private buildMenu: BuildMenu | undefined
+  private speedMenu: SpeedMenu | undefined
 
   constructor() {
     super('MainScene')
@@ -99,7 +111,7 @@ export class MainScene extends Phaser.Scene {
     this.setupCamera()
     this.setupCameraControls()
     this.setupBuildingInput()
-    bindBuildMenu({
+    this.buildMenu = bindBuildMenu({
       onToolChange: (tool) => this.setTool(tool),
       onPaintModeChange: (mode) => this.setPaintMode(mode),
     })
@@ -113,14 +125,19 @@ export class MainScene extends Phaser.Scene {
     this.fundsNote = document.querySelector('#hud-funds-note')
     this.landValueLabel = document.querySelector('#hud-land-value')
     this.demandsLabel = document.querySelector('#hud-demands')
+    this.foodLabel = document.querySelector('#hud-food')
+    this.woodLabel = document.querySelector('#hud-wood')
+    this.goodsLabel = document.querySelector('#hud-goods')
+    this.eventLabel = document.querySelector('#hud-event')
     this.residentPanel.onClose(() => this.clearResidentInspect())
     this.renderDate()
     this.renderClock()
     this.loadOrStartGame()
-    bindSpeedMenu((speed) => {
+    this.speedMenu = bindSpeedMenu((speed) => {
       this.gameTime.setSpeed(speed)
       this.persistGame()
     }, this.gameTime.speed)
+    bindClearGame(() => this.startNewGame())
     this.createTileSprites()
     this.createResidentMarkers()
     this.renderCityHud()
@@ -172,13 +189,34 @@ export class MainScene extends Phaser.Scene {
         speed: snapshot.speed,
       })
       this.treasury.applyLoadedFunds(snapshot.funds)
-      this.residentSim = new ResidentSim(this.worldMap, snapshot.residents)
+      this.residentSim = new ResidentSim(this.worldMap, snapshot.residents, snapshot.event)
       this.renderDate()
       this.renderClock()
       return
     }
 
+    this.worldMap.generateLandscape()
     this.residentSim = new ResidentSim(this.worldMap)
+  }
+
+  private startNewGame(): void {
+    clearSnapshot(window.localStorage)
+    this.worldMap.generateLandscape()
+    this.gameTime.reset()
+    this.treasury = new Treasury(INITIAL_FUNDS)
+    this.residentSim = new ResidentSim(this.worldMap)
+    this.saveAccumMs = 0
+    this.clearResidentInspect()
+    this.buildMenu?.setPaintMode(PaintMode.Click)
+    this.buildMenu?.setTool(BuildTool.None)
+    this.speedMenu?.apply(GameSpeed.X1)
+    this.createTileSprites()
+    this.createResidentMarkers()
+    this.fitMapInView()
+    this.renderDate()
+    this.renderClock()
+    this.renderCityHud()
+    this.persistGame()
   }
 
   private persistGame(): void {
@@ -198,6 +236,7 @@ export class MainScene extends Phaser.Scene {
       mapHeight: this.worldMap.height,
       tiles: this.worldMap.snapshotTiles(),
       residents: this.residentSim.residents,
+      event: this.residentSim.cityEvent,
     })
   }
 
@@ -312,6 +351,18 @@ export class MainScene extends Phaser.Scene {
       const demands = cityDemands(this.worldMap, this.residentSim.residents)
       this.demandsLabel.textContent = demands.length > 0 ? demands.join('、') : 'なし'
     }
+    if (this.foodLabel) {
+      this.foodLabel.textContent = `${Math.floor(this.worldMap.totalStock(StockKind.Food))}`
+    }
+    if (this.woodLabel) {
+      this.woodLabel.textContent = `${Math.floor(this.worldMap.totalStock(StockKind.Wood))}`
+    }
+    if (this.goodsLabel) {
+      this.goodsLabel.textContent = `${Math.floor(this.worldMap.totalStock(StockKind.Goods))}`
+    }
+    if (this.eventLabel) {
+      this.eventLabel.textContent = eventDisplayName(this.residentSim.cityEvent)
+    }
   }
 
   private setTool(tool: BuildTool): void {
@@ -333,6 +384,7 @@ export class MainScene extends Phaser.Scene {
 
   private createTileSprites(): void {
     this.grassField?.destroy()
+    this.mapEdge?.destroy()
     for (const sprite of this.tileSprites) {
       sprite.destroy()
     }
@@ -367,9 +419,9 @@ export class MainScene extends Phaser.Scene {
       this.paintTile(x, y)
     })
 
-    const edge = this.add.graphics().setDepth(200)
-    edge.lineStyle(2, MAP_EDGE, 1)
-    edge.strokeRect(0, 0, pixelWidth, pixelHeight)
+    this.mapEdge = this.add.graphics().setDepth(200)
+    this.mapEdge.lineStyle(2, MAP_EDGE, 1)
+    this.mapEdge.strokeRect(0, 0, pixelWidth, pixelHeight)
   }
 
   private setupCamera(): void {
@@ -636,11 +688,16 @@ export class MainScene extends Phaser.Scene {
     const size = this.worldMap.tileSize
     const layoutKey = frame.startsWith('road-') ? 'road' : frame
     const layout = PROP_LAYOUT[layoutKey] ?? PROP_LAYOUT.house
+    const tile = this.worldMap.getTile(x, y)
+    const forestTree = tile?.terrain === Terrain.Forest && (frame === 'tree' || frame === 'bush')
     const jitter =
-      frame === 'tree' || frame === 'bush' || frame === 'flower' ? decoOffset(x, y) : { x: 0, y: 0 }
+      forestTree
+        ? { x: 0, y: 0 }
+        : frame === 'tree' || frame === 'bush' || frame === 'flower'
+          ? decoOffset(x, y)
+          : { x: 0, y: 0 }
     const width = size * layout.width
     const height = size * layout.height
-    const tile = this.worldMap.getTile(x, y)
     const growable = Boolean(tile && isGrowableType(tile.type) && !frame.startsWith('road-'))
     const level = growable && tile ? tile.level : 1
     const variant = tile?.variant ?? 0
@@ -658,7 +715,9 @@ export class MainScene extends Phaser.Scene {
       sprite.clearTint()
     }
     sprite.setDepth(
-      frame.startsWith('road-') || frame === 'flower' ? 1 + y * 0.02 : 18 + y,
+      frame.startsWith('road-') || frame === 'flower' || frame === 'water' || frame === 'river'
+        ? 1 + y * 0.02
+        : 18 + y,
     )
   }
 
@@ -684,20 +743,35 @@ export class MainScene extends Phaser.Scene {
 
     ground.setVisible(false)
 
-    if (
-      tile.type === TileType.House ||
-      tile.type === TileType.Shop ||
-      tile.type === TileType.Workshop ||
-      tile.type === TileType.Farm
-    ) {
-      const frame = buildingTileKey(tile.type)
-      if (!frame) {
-        prop.setVisible(false)
-        return
-      }
+    if (isWaterTerrain(tile.terrain)) {
+      const frame = tile.terrain === Terrain.River ? 'river' : 'water'
+      ground.setVisible(true)
+      ground.setTexture(WATER_TEXTURE_KEY, frame)
+      this.placeVisual(ground, frame, x, y)
+      prop.setVisible(false)
+      return
+    }
+
+    const buildingFrame = buildingTileKey(tile.type)
+    if (buildingFrame) {
+      prop.setVisible(true)
+      prop.setTexture(textureForProp(buildingFrame))
+      this.placeVisual(prop, buildingFrame, x, y)
+      return
+    }
+
+    if (tile.terrain === Terrain.Forest) {
+      const frame = hashForest(x, y)
       prop.setVisible(true)
       prop.setTexture(textureForProp(frame))
       this.placeVisual(prop, frame, x, y)
+      return
+    }
+
+    if (tile.terrain === Terrain.Rock) {
+      prop.setVisible(true)
+      prop.setTexture(textureForProp('rock'))
+      this.placeVisual(prop, 'rock', x, y)
       return
     }
 
@@ -798,4 +872,8 @@ export class MainScene extends Phaser.Scene {
     const worldPoint = this.cameras.main.getWorldPoint(pointer.x, pointer.y)
     return this.worldMap.worldToTile(worldPoint.x, worldPoint.y)
   }
+}
+
+function hashForest(x: number, y: number): 'tree' | 'bush' {
+  return (x * 13 + y * 29) % 4 === 0 ? 'bush' : 'tree'
 }

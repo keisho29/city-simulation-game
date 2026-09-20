@@ -2,10 +2,21 @@ import {
   INITIAL_RESIDENT_COUNT,
   INFLOW_INTERVAL_HOURS,
   RESIDENT_MOVE_SPEED,
+  WORK_END_HOUR,
+  WORK_START_HOUR,
   type GameSpeed,
 } from '../constants.ts'
 import { canAcceptInflow, createInflowResident } from '../city/inflow.ts'
+import {
+  CityEventKind,
+  createCityEvent,
+  harvestMultiplier,
+  tickCityEvents,
+  type CityEventState,
+} from '../city/events.ts'
 import { tickCityEconomy } from '../economy/circulation.ts'
+import { completeDrop, completePickup, tryStartHaul } from '../economy/logistics.ts'
+import { tickProduction } from '../economy/production.ts'
 import type { Treasury } from '../economy/treasury.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import { applySchedule } from './commute.ts'
@@ -21,11 +32,13 @@ const ARRIVE_DISTANCE = 2
 
 export class ResidentSim {
   readonly residents: Resident[]
+  cityEvent: CityEventState
   private readonly map: WorldMap
   private inflowHours = 0
 
-  constructor(map: WorldMap, residents?: Resident[]) {
+  constructor(map: WorldMap, residents?: Resident[], cityEvent?: CityEventState) {
     this.map = map
+    this.cityEvent = cityEvent ? { ...cityEvent } : createCityEvent()
     if (residents) {
       this.residents = residents.map((resident) => createResident(resident))
       return
@@ -50,12 +63,12 @@ export class ResidentSim {
   refreshHousing(): void {
     assignHomes(this.map, this.residents)
     relocateIfNeeded(this.map, this.residents)
-    applyHappiness(this.residents)
+    applyHappiness(this.residents, this.happinessContext())
   }
 
   refreshJobs(): void {
     assignJobs(this.map, this.residents)
-    applyHappiness(this.residents)
+    applyHappiness(this.residents, this.happinessContext())
   }
 
   housedCount(): number {
@@ -83,6 +96,8 @@ export class ResidentSim {
 
     const step = RESIDENT_MOVE_SPEED * (speed / 1) * (deltaMs / 1000)
     const gameHours = gameHoursFromDelta(deltaMs, speed)
+    this.cityEvent = tickCityEvents(this.cityEvent, gameHours)
+    tickProduction(this.map, gameHours, harvestMultiplier(this.cityEvent))
 
     for (const resident of this.residents) {
       tickNeeds(resident, this.map, gameHours)
@@ -90,14 +105,22 @@ export class ResidentSim {
         tickCityEconomy(resident, this.map, treasury, gameHours)
       }
       applySchedule(resident, hour, isHoliday)
+      tryStartHaul(resident, this.map)
       maybeStartShopping(resident, this.map, hour, isHoliday)
       relocateIfNeeded(this.map, [resident])
-      this.walkTowardGoal(resident, step, treasury)
+      this.walkTowardGoal(resident, step, hour, isHoliday, treasury)
     }
 
     this.fillOpenedSlots()
     this.tryInflow(gameHours)
-    applyHappiness(this.residents, { isHoliday })
+    applyHappiness(this.residents, { ...this.happinessContext(), isHoliday })
+  }
+
+  private happinessContext() {
+    return {
+      festival: this.cityEvent.kind === CityEventKind.Festival,
+      map: this.map,
+    }
   }
 
   private fillOpenedSlots(): void {
@@ -127,7 +150,13 @@ export class ResidentSim {
     this.refreshJobs()
   }
 
-  private walkTowardGoal(resident: Resident, step: number, treasury?: Treasury): void {
+  private walkTowardGoal(
+    resident: Resident,
+    step: number,
+    hour: number,
+    isHoliday: boolean,
+    treasury?: Treasury,
+  ): void {
     const goal = this.walkGoal(resident)
     if (!goal) {
       return
@@ -141,10 +170,20 @@ export class ResidentSim {
     if (distance <= ARRIVE_DISTANCE || distance <= step) {
       resident.worldX = target.x
       resident.worldY = target.y
-      resident.state = goal.arriveState
       if (goal.arriveState === ResidentState.Shopping) {
         finishShopping(resident, this.map, treasury)
+        return
       }
+      if (goal.arriveState === ResidentState.Hauling) {
+        completePickup(resident, this.map)
+        return
+      }
+      if (goal.arriveState === ResidentState.MovingToWork && resident.state === ResidentState.Hauling) {
+        const goHome = isHoliday || hour < WORK_START_HOUR || hour >= WORK_END_HOUR
+        completeDrop(resident, this.map, goHome)
+        return
+      }
+      resident.state = goal.arriveState
       return
     }
 
@@ -173,6 +212,14 @@ export class ResidentSim {
       resident.shopTarget
     ) {
       return { tile: resident.shopTarget, arriveState: ResidentState.Shopping }
+    }
+
+    if (resident.state === ResidentState.MovingToPickup && resident.haulPickup) {
+      return { tile: resident.haulPickup, arriveState: ResidentState.Hauling }
+    }
+
+    if (resident.state === ResidentState.Hauling && resident.haulDrop) {
+      return { tile: resident.haulDrop, arriveState: ResidentState.MovingToWork }
     }
 
     return undefined

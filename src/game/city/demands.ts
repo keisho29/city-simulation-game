@@ -1,4 +1,6 @@
-import { TileType } from '../map/tile.ts'
+import { HUNGER_HUNGRY } from '../constants.ts'
+import { StockKind } from '../economy/goods.ts'
+import { isFoodStallType, TileType } from '../map/tile.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import type { Resident } from '../residents/resident.ts'
 
@@ -6,6 +8,7 @@ export function cityDemands(map: WorldMap, residents: readonly Resident[]): stri
   const demands: string[] = []
   const homeless = residents.filter((resident) => !resident.home).length
   const jobless = residents.filter((resident) => resident.home && !resident.workplace).length
+  const hungry = residents.filter((resident) => resident.hunger >= HUNGER_HUNGRY).length
 
   if (homeless > 0 || (residents.length > 0 && map.vacantHouseSlots() === 0)) {
     demands.push('住宅不足')
@@ -15,17 +18,36 @@ export function cityDemands(map: WorldMap, residents: readonly Resident[]): stri
     demands.push('仕事不足')
   }
 
-  if (residents.length >= 5 && !hasType(map, TileType.Shop)) {
+  if (residents.length >= 5 && !hasStall(map)) {
     demands.push('商店不足')
+  }
+
+  if (
+    residents.length >= 3 &&
+    (hungry >= 2 || map.totalStock(StockKind.Food) < residents.length * 0.4)
+  ) {
+    demands.push('食料不足')
+  }
+
+  if (residents.length >= 8 && !map.hasType(TileType.Well)) {
+    demands.push('水不足')
+  }
+
+  if (residents.length >= 12 && !map.hasType(TileType.Clinic)) {
+    demands.push('診療不足')
+  }
+
+  if (map.hasType(TileType.Workshop) && map.totalStock(StockKind.Wood) < 2) {
+    demands.push('木材不足')
   }
 
   return demands
 }
 
-function hasType(map: WorldMap, type: TileType): boolean {
+function hasStall(map: WorldMap): boolean {
   let found = false
   map.forEachTile((_x, _y, tile) => {
-    if (tile.type === type) {
+    if (isFoodStallType(tile.type)) {
       found = true
     }
   })

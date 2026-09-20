@@ -8,6 +8,10 @@ export const BuildTool = {
   Farm: 'farm',
   Shop: 'shop',
   Workshop: 'workshop',
+  Market: 'market',
+  Well: 'well',
+  Warehouse: 'warehouse',
+  Clinic: 'clinic',
 } as const
 
 export type BuildTool = (typeof BuildTool)[keyof typeof BuildTool]
@@ -57,6 +61,30 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     name: '工房',
     tileType: TileType.Workshop,
     cost: 150,
+  },
+  market: {
+    id: 'market',
+    name: '市場',
+    tileType: TileType.Market,
+    cost: 130,
+  },
+  well: {
+    id: 'well',
+    name: '井戸',
+    tileType: TileType.Well,
+    cost: 40,
+  },
+  warehouse: {
+    id: 'warehouse',
+    name: '倉庫',
+    tileType: TileType.Warehouse,
+    cost: 110,
+  },
+  clinic: {
+    id: 'clinic',
+    name: '診療所',
+    tileType: TileType.Clinic,
+    cost: 160,
   },
 }
 

@@ -1,4 +1,5 @@
 import { HAPPINESS_BASE, INITIAL_HUNGER, INITIAL_RESIDENT_MONEY } from '../constants.ts'
+import type { StockKind } from '../economy/goods.ts'
 
 export const ResidentState = {
   SeekingHome: 'SEEKING_HOME',
@@ -9,6 +10,8 @@ export const ResidentState = {
   MovingToHome: 'MOVING_TO_HOME',
   MovingToShop: 'MOVING_TO_SHOP',
   Shopping: 'SHOPPING',
+  MovingToPickup: 'MOVING_TO_PICKUP',
+  Hauling: 'HAULING',
 } as const
 
 export type ResidentState = (typeof ResidentState)[keyof typeof ResidentState]
@@ -25,6 +28,10 @@ export type Resident = {
   home: TileRef | undefined
   workplace: TileRef | undefined
   shopTarget: TileRef | undefined
+  haulKind: StockKind | undefined
+  haulAmount: number | undefined
+  haulPickup: TileRef | undefined
+  haulDrop: TileRef | undefined
   happiness: number
   hunger: number
   money: number
@@ -41,6 +48,10 @@ export function createResident(overrides: Partial<Resident> = {}): Resident {
     home: overrides.home,
     workplace: overrides.workplace,
     shopTarget: overrides.shopTarget,
+    haulKind: overrides.haulKind,
+    haulAmount: overrides.haulAmount,
+    haulPickup: overrides.haulPickup,
+    haulDrop: overrides.haulDrop,
     happiness: overrides.happiness ?? HAPPINESS_BASE,
     hunger: overrides.hunger ?? INITIAL_HUNGER,
     money: overrides.money ?? INITIAL_RESIDENT_MONEY,

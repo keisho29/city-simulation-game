@@ -26,4 +26,22 @@ describe('city demands', () => {
     )
     expect(cityDemands(map, residents)).toContain('商店不足')
   })
+
+  it('asks for food when the town has little grain', () => {
+    const map = new WorldMap(5, 5, 32)
+    const residents = Array.from({ length: 3 }, (_, index) =>
+      createResident({ id: `r${index}`, hunger: 70 }),
+    )
+    expect(cityDemands(map, residents)).toContain('食料不足')
+  })
+
+  it('asks for a well and clinic as the town grows', () => {
+    const map = new WorldMap(5, 5, 32)
+    const residents = Array.from({ length: 12 }, (_, index) =>
+      createResident({ id: `r${index}` }),
+    )
+    const demands = cityDemands(map, residents)
+    expect(demands).toContain('水不足')
+    expect(demands).toContain('診療不足')
+  })
 })

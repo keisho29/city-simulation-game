@@ -26,7 +26,12 @@ export function tickCityEconomy(
     return
   }
 
-  if (resident.state === ResidentState.Working && resident.workplace) {
+  if (
+    (resident.state === ResidentState.Working ||
+      resident.state === ResidentState.MovingToPickup ||
+      resident.state === ResidentState.Hauling) &&
+    resident.workplace
+  ) {
     const job = map.getTile(resident.workplace.x, resident.workplace.y)
     const wage = wageForTile(job?.type, job?.level ?? 1) * gameHours
     treasury.receive(wage * WORK_TAX_RATIO)

@@ -3,7 +3,7 @@ import { GameSpeed } from '../constants.ts'
 import { WorldMap } from '../map/WorldMap.ts'
 import { TileType } from '../map/tile.ts'
 import { GameTime } from '../time/gameTime.ts'
-import { SAVE_STORAGE_KEY, loadSnapshot, parseSnapshot, writeSnapshot } from './save.ts'
+import { SAVE_STORAGE_KEY, clearSnapshot, loadSnapshot, parseSnapshot, writeSnapshot } from './save.ts'
 import { ResidentState } from '../residents/resident.ts'
 
 function sampleSnapshot() {
@@ -52,6 +52,9 @@ describe('parseSnapshot', () => {
     expect(parsed?.tiles[0]?.occupantIds).toEqual(['resident-1'])
     expect(parsed?.tiles[0]?.level).toBe(1)
     expect(parsed?.tiles[0]?.xp).toBe(0)
+    expect(parsed?.tiles[0]?.terrain).toBe('grass')
+    expect(parsed?.tiles[0]?.food).toBe(0)
+    expect(parsed?.event.kind).toBe('none')
   })
 
   it('fills hunger and money when an older save omits them', () => {
@@ -102,6 +105,28 @@ describe('storage', () => {
     expect(memory.has(SAVE_STORAGE_KEY)).toBe(true)
     expect(loadSnapshot(storage)?.day).toBe(12)
   })
+
+  it('clears a saved game', () => {
+    const memory = new Map<string, string>()
+    const storage = {
+      getItem: (key: string) => memory.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        memory.set(key, value)
+      },
+      removeItem: (key: string) => {
+        memory.delete(key)
+      },
+    }
+    const snapshot = parseSnapshot(sampleSnapshot())
+    expect(snapshot).toBeDefined()
+    if (!snapshot) {
+      return
+    }
+
+    writeSnapshot(storage, snapshot)
+    clearSnapshot(storage)
+    expect(loadSnapshot(storage)).toBeUndefined()
+  })
 })
 
 describe('restore helpers', () => {
@@ -128,5 +153,14 @@ describe('restore helpers', () => {
     expect(copy.restoreTiles(map.snapshotTiles())).toBe(true)
     expect(copy.getTile(0, 0)?.type).toBe(TileType.House)
     expect(copy.getTile(0, 0)?.occupantIds).toEqual(['resident-1'])
+  })
+
+  it('clears the map for a new game', () => {
+    const map = new WorldMap(2, 2, 32)
+    map.place(0, 0, TileType.House)
+    map.occupyHouse(0, 0, 'resident-1')
+    map.reset()
+    expect(map.getTile(0, 0)?.type).toBe(TileType.Vacant)
+    expect(map.getTile(0, 0)?.occupantIds).toEqual([])
   })
 })

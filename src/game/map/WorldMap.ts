@@ -1,6 +1,22 @@
 import { MAP_HEIGHT, MAP_WIDTH, TILE_SIZE } from '../constants.ts'
+import {
+  addStock as addTileStock,
+  takeStock as takeTileStock,
+  transferStock as transferTileStock,
+  type StockKind,
+} from '../economy/goods.ts'
 import { addBuildingXp, buildingVariantAt, houseSlots, jobSlots } from './growth.ts'
-import { createTile, isGrowableType, isWorkplaceType, TileType, type Tile } from './tile.ts'
+import { generateLandscapeLayout, landscapeSeed } from './landscape.ts'
+import {
+  Terrain,
+  createTile,
+  isBuildableTerrain,
+  isFoodStallType,
+  isGrowableType,
+  isWorkplaceType,
+  TileType,
+  type Tile,
+} from './tile.ts'
 
 export class WorldMap {
   readonly width: number
@@ -49,7 +65,8 @@ export class WorldMap {
       return
     }
 
-    Object.assign(tile, createTile(type, buildingVariantAt(x, y)))
+    const terrain = tile.terrain
+    Object.assign(tile, createTile(type, buildingVariantAt(x, y), terrain))
   }
 
   worldToTile(worldX: number, worldY: number): { x: number; y: number } | undefined {
@@ -63,7 +80,8 @@ export class WorldMap {
   }
 
   canPlace(x: number, y: number): boolean {
-    return this.getTile(x, y)?.type === TileType.Vacant
+    const tile = this.getTile(x, y)
+    return tile?.type === TileType.Vacant && isBuildableTerrain(tile.terrain)
   }
 
   place(x: number, y: number, type: TileType): boolean {
@@ -168,12 +186,16 @@ export class WorldMap {
     tile.occupantIds = tile.occupantIds.filter((id) => id !== residentId)
   }
 
-  findNearestShop(near?: { x: number; y: number }): { x: number; y: number } | undefined {
+  findNearest(
+    near: { x: number; y: number } | undefined,
+    match: (tile: Tile, x: number, y: number) => boolean,
+  ): { x: number; y: number } | undefined {
     let best: { x: number; y: number; distance: number } | undefined
 
     for (let y = 0; y < this.height; y += 1) {
       for (let x = 0; x < this.width; x += 1) {
-        if (this.getTile(x, y)?.type !== TileType.Shop) {
+        const tile = this.getTile(x, y)
+        if (!tile || !match(tile, x, y)) {
           continue
         }
 
@@ -188,6 +210,64 @@ export class WorldMap {
     }
 
     return best ? { x: best.x, y: best.y } : undefined
+  }
+
+  findNearestShop(
+    near?: { x: number; y: number },
+    options?: { minFood?: number },
+  ): { x: number; y: number } | undefined {
+    const minFood = options?.minFood ?? 0
+    return this.findNearest(near, (tile) => {
+      return isFoodStallType(tile.type) && tile.food >= minFood
+    })
+  }
+
+  hasType(type: TileType): boolean {
+    return this.findNearest(undefined, (tile) => tile.type === type) !== undefined
+  }
+
+  hasTerrain(terrain: Terrain): boolean {
+    return this.findNearest(undefined, (tile) => tile.terrain === terrain) !== undefined
+  }
+
+  totalStock(kind: StockKind): number {
+    let total = 0
+    this.forEachTile((_x, _y, tile) => {
+      if (kind === 'food') {
+        total += tile.food
+      } else if (kind === 'wood') {
+        total += tile.wood
+      } else {
+        total += tile.goods
+      }
+    })
+    return total
+  }
+
+  addStock(x: number, y: number, kind: StockKind, amount: number): number {
+    const tile = this.getTile(x, y)
+    return tile ? addTileStock(tile, kind, amount) : 0
+  }
+
+  takeStock(x: number, y: number, kind: StockKind, amount: number): number {
+    const tile = this.getTile(x, y)
+    return tile ? takeTileStock(tile, kind, amount) : 0
+  }
+
+  transferStock(
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+    kind: StockKind,
+    amount: number,
+  ): number {
+    const from = this.getTile(fromX, fromY)
+    const to = this.getTile(toX, toY)
+    if (!from || !to) {
+      return 0
+    }
+    return transferTileStock(from, to, kind, amount)
   }
 
   findCloserVacantHouse(
@@ -238,11 +318,29 @@ export class WorldMap {
   snapshotTiles(): Tile[] {
     return this.tiles.map((tile) => ({
       type: tile.type,
+      terrain: tile.terrain,
       occupantIds: [...tile.occupantIds],
       level: tile.level,
       xp: tile.xp,
       variant: tile.variant,
+      food: tile.food,
+      wood: tile.wood,
+      goods: tile.goods,
     }))
+  }
+
+  reset(): void {
+    this.forEachTile((_x, _y, tile) => {
+      Object.assign(tile, createTile())
+    })
+  }
+
+  generateLandscape(seed = landscapeSeed()): void {
+    this.reset()
+    const layout = generateLandscapeLayout(this.width, this.height, seed)
+    this.forEachTile((x, y, tile) => {
+      tile.terrain = layout[y * this.width + x]
+    })
   }
 
   restoreTiles(tiles: Tile[]): boolean {
@@ -254,10 +352,14 @@ export class WorldMap {
       const source = tiles[index]
       const target = this.tiles[index]
       target.type = source.type
+      target.terrain = source.terrain ?? Terrain.Grass
       target.occupantIds = [...source.occupantIds]
       target.level = source.level
       target.xp = source.xp
       target.variant = source.variant
+      target.food = source.food ?? 0
+      target.wood = source.wood ?? 0
+      target.goods = source.goods ?? 0
     }
 
     return true

@@ -49,6 +49,10 @@ describe('shopping', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(0, 0, TileType.House)
     map.place(4, 0, TileType.Shop)
+    const shop = map.getTile(4, 0)
+    if (shop) {
+      shop.food = 8
+    }
     const resident = createResident({
       home: { x: 0, y: 0 },
       workplace: { x: 2, y: 2 },
@@ -82,6 +86,10 @@ describe('shopping', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(0, 0, TileType.House)
     map.place(4, 0, TileType.Shop)
+    const shop = map.getTile(4, 0)
+    if (shop) {
+      shop.food = 8
+    }
     const sim = new ResidentSim(map, [
       createResident({
         id: 'resident-1',

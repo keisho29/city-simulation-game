@@ -80,6 +80,16 @@ export class GameTime {
     this.speed = snapshot.speed
   }
 
+  reset(): void {
+    this.restore({
+      year: START_YEAR,
+      month: START_MONTH,
+      day: START_DAY,
+      elapsedMs: 0,
+      speed: GameSpeed.X1,
+    })
+  }
+
   update(deltaMs: number): boolean {
     if (this.speed === GameSpeed.Pause || deltaMs <= 0) {
       return false

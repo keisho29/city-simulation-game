@@ -35,6 +35,12 @@ export function workplaceLabel(type: TileType | undefined): string | undefined {
       return '商店'
     case TileType.Workshop:
       return '工房'
+    case TileType.Market:
+      return '市場'
+    case TileType.Warehouse:
+      return '倉庫'
+    case TileType.Clinic:
+      return '診療所'
     default:
       return undefined
   }

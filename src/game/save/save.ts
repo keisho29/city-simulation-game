@@ -1,6 +1,12 @@
 import { GameSpeed } from '../constants.ts'
+import {
+  CityEventKind,
+  createCityEvent,
+  type CityEventState,
+} from '../city/events.ts'
+import { StockKind, type StockKind as StockKindType } from '../economy/goods.ts'
 import type { Tile } from '../map/tile.ts'
-import { TileType } from '../map/tile.ts'
+import { Terrain, TileType } from '../map/tile.ts'
 import { createResident, ResidentState, type Resident, type TileRef } from '../residents/resident.ts'
 
 export const SAVE_VERSION = 1
@@ -18,11 +24,15 @@ export type SaveSnapshot = {
   mapHeight: number
   tiles: Tile[]
   residents: Resident[]
+  event: CityEventState
 }
 
 const TILE_TYPES = new Set<string>(Object.values(TileType))
+const TERRAIN_TYPES = new Set<string>(Object.values(Terrain))
 const RESIDENT_STATES = new Set<string>(Object.values(ResidentState))
 const GAME_SPEEDS = new Set<number>(Object.values(GameSpeed))
+const CITY_EVENTS = new Set<string>(Object.values(CityEventKind))
+const STOCK_KINDS = new Set<string>(Object.values(StockKind))
 
 export function parseSnapshot(raw: unknown): SaveSnapshot | undefined {
   if (!isRecord(raw) || raw.version !== SAVE_VERSION) {
@@ -78,6 +88,7 @@ export function parseSnapshot(raw: unknown): SaveSnapshot | undefined {
     mapHeight: raw.mapHeight,
     tiles,
     residents,
+    event: parseEvent(raw.event),
   }
 }
 
@@ -105,6 +116,10 @@ export function writeSnapshot(
   }
 }
 
+export function clearSnapshot(storage: Pick<Storage, 'removeItem'>): void {
+  storage.removeItem(SAVE_STORAGE_KEY)
+}
+
 function parseTile(raw: unknown): Tile | undefined {
   if (!isRecord(raw) || !TILE_TYPES.has(raw.type as string) || !Array.isArray(raw.occupantIds)) {
     return undefined
@@ -115,12 +130,17 @@ function parseTile(raw: unknown): Tile | undefined {
   const level = isFiniteNumber(raw.level) ? Math.max(1, Math.min(3, Math.floor(raw.level))) : 1
   const xp = isFiniteNumber(raw.xp) ? Math.max(0, raw.xp) : 0
   const variant = isFiniteNumber(raw.variant) ? Math.max(0, Math.floor(raw.variant) % 3) : 0
+  const terrain = TERRAIN_TYPES.has(raw.terrain as string) ? (raw.terrain as Tile['terrain']) : Terrain.Grass
   return {
     type,
+    terrain,
     occupantIds,
     level,
     xp,
     variant,
+    food: isFiniteNumber(raw.food) ? Math.max(0, raw.food) : 0,
+    wood: isFiniteNumber(raw.wood) ? Math.max(0, raw.wood) : 0,
+    goods: isFiniteNumber(raw.goods) ? Math.max(0, raw.goods) : 0,
   }
 }
 
@@ -145,6 +165,12 @@ function parseResident(raw: unknown): Resident | undefined {
     home: parseTileRef(raw.home),
     workplace: parseTileRef(raw.workplace),
     shopTarget: parseTileRef(raw.shopTarget),
+    haulKind: STOCK_KINDS.has(raw.haulKind as string)
+      ? (raw.haulKind as StockKindType)
+      : undefined,
+    haulAmount: isFiniteNumber(raw.haulAmount) ? Math.max(0, raw.haulAmount) : undefined,
+    haulPickup: parseTileRef(raw.haulPickup),
+    haulDrop: parseTileRef(raw.haulDrop),
     happiness: raw.happiness,
     hunger: isFiniteNumber(raw.hunger) ? Math.max(0, Math.min(100, raw.hunger)) : undefined,
     money: isFiniteNumber(raw.money) ? Math.max(0, raw.money) : undefined,
@@ -152,6 +178,23 @@ function parseResident(raw: unknown): Resident | undefined {
     worldX: raw.worldX,
     worldY: raw.worldY,
   })
+}
+
+function parseEvent(raw: unknown): CityEventState {
+  if (
+    isRecord(raw) &&
+    CITY_EVENTS.has(raw.kind as string) &&
+    isFiniteNumber(raw.remainingHours) &&
+    isFiniteNumber(raw.cooldownHours)
+  ) {
+    return {
+      kind: raw.kind as CityEventKind,
+      remainingHours: Math.max(0, raw.remainingHours),
+      cooldownHours: Math.max(0, raw.cooldownHours),
+    }
+  }
+
+  return createCityEvent()
 }
 
 function parseTileRef(raw: unknown): TileRef | undefined {

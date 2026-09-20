@@ -1,6 +1,6 @@
 import Phaser from 'phaser'
 import { hash32, paintPixels } from './pixelTexture.ts'
-import { TILE_ART_PX, TILE_SPRITES, type TileAtlasKey, validateTileArt } from './tileArt.ts'
+import { TILE_ART_PX, TILE_ART_SIZE, TILE_SPRITES, type TileAtlasKey, validateTileArt } from './tileArt.ts'
 import {
   RESIDENT_ATLAS_ORDER,
   RESIDENT_SPRITES,
@@ -10,6 +10,7 @@ import {
 
 export const TILE_TEXTURE_KEY = 'tiles'
 export const ROAD_TEXTURE_KEY = 'roads'
+export const WATER_TEXTURE_KEY = 'waters'
 export const GRASS_TEXTURE_KEY = 'grass-field'
 
 export const PROP_TEXTURE: Record<string, string> = {
@@ -17,9 +18,14 @@ export const PROP_TEXTURE: Record<string, string> = {
   farm: 'prop-farm',
   shop: 'prop-shop',
   workshop: 'prop-workshop',
+  market: 'prop-market',
+  well: 'prop-well',
+  warehouse: 'prop-warehouse',
+  clinic: 'prop-clinic',
   tree: 'prop-tree',
   bush: 'prop-bush',
   flower: 'prop-flower',
+  rock: 'prop-rock',
 }
 
 export const GRASS_CELL_PX = 32
@@ -67,9 +73,15 @@ export function createWorldArt(scene: Phaser.Scene): void {
   createPropTexture(scene.textures, PROP_TEXTURE.farm, SRC_FARM)
   createPropTexture(scene.textures, PROP_TEXTURE.shop, SRC_SHOP)
   createPropTexture(scene.textures, PROP_TEXTURE.workshop, SRC_WORKSHOP)
+  createPropTexture(scene.textures, PROP_TEXTURE.market, '')
+  createPropTexture(scene.textures, PROP_TEXTURE.well, '')
+  createPropTexture(scene.textures, PROP_TEXTURE.warehouse, '')
+  createPropTexture(scene.textures, PROP_TEXTURE.clinic, '')
   createTreeTextures(scene.textures)
   createFlowerTexture(scene.textures)
+  createPropTexture(scene.textures, PROP_TEXTURE.rock, '')
   createRoadAtlas(scene.textures)
+  createWaterAtlas(scene.textures)
   createResidentAtlas(scene.textures)
 }
 
@@ -787,6 +799,46 @@ function createRoadAtlas(textures: Phaser.Textures.TextureManager): void {
   texture.setFilter(Phaser.Textures.FilterMode.NEAREST)
   for (let mask = 0; mask < ROAD_COUNT; mask += 1) {
     texture.add(`road-${mask}`, 0, mask * ROAD_FRAME, 0, ROAD_FRAME, ROAD_FRAME)
+  }
+  texture.refresh()
+}
+
+function createWaterAtlas(textures: Phaser.Textures.TextureManager): void {
+  const frames = ['water', 'river'] as const
+  const canvas = document.createElement('canvas')
+  canvas.width = ROAD_FRAME * frames.length
+  canvas.height = ROAD_FRAME
+  const ctx = canvas.getContext('2d', { alpha: true })
+  if (!ctx) {
+    throw new Error('水面のテクスチャを作れませんでした')
+  }
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  disableSmooth(ctx)
+
+  for (const [index, key] of frames.entries()) {
+    const sprite = TILE_SPRITES[key]
+    const stamp = document.createElement('canvas')
+    stamp.width = TILE_ART_SIZE
+    stamp.height = TILE_ART_SIZE
+    const stampCtx = stamp.getContext('2d', { alpha: true })
+    if (!stampCtx) {
+      continue
+    }
+    paintPixels(stampCtx, sprite, 1, 0, 0)
+    ctx.drawImage(stamp, 0, 0, TILE_ART_SIZE, TILE_ART_SIZE, index * ROAD_FRAME, 0, ROAD_FRAME, ROAD_FRAME)
+  }
+
+  if (textures.exists(WATER_TEXTURE_KEY)) {
+    textures.remove(WATER_TEXTURE_KEY)
+  }
+  const texture = textures.addCanvas(WATER_TEXTURE_KEY, canvas)
+  if (!texture) {
+    throw new Error('水面のテクスチャを作れませんでした')
+  }
+  texture.setFilter(Phaser.Textures.FilterMode.NEAREST)
+  for (const [index, key] of frames.entries()) {
+    texture.add(key, 0, index * ROAD_FRAME, 0, ROAD_FRAME, ROAD_FRAME)
   }
   texture.refresh()
 }

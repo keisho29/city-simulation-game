@@ -1,4 +1,5 @@
 import { WORK_END_HOUR, WORK_START_HOUR } from '../constants.ts'
+import { abortHaul, isHauling } from '../economy/logistics.ts'
 import { ResidentState, type Resident } from './resident.ts'
 
 export function isWorkHours(hour: number): boolean {
@@ -10,6 +11,17 @@ export function applySchedule(resident: Resident, hour: number, isHoliday = fals
     resident.state === ResidentState.SeekingHome ||
     resident.state === ResidentState.MovingIn
   ) {
+    return
+  }
+
+  if (isHauling(resident)) {
+    if (isHoliday || !isWorkHours(hour)) {
+      if (resident.state === ResidentState.Hauling) {
+        return
+      }
+      abortHaul(resident)
+      resident.state = resident.home ? ResidentState.MovingToHome : ResidentState.SeekingHome
+    }
     return
   }
 

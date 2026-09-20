@@ -50,6 +50,7 @@ export function bindResidentPanel(): InspectPanel {
       setText('tile-xp', tile.xp)
       setText('tile-value', tile.value)
       setText('tile-capacity', tile.capacity)
+      setText('tile-stock', tile.stock)
     }
   }
 

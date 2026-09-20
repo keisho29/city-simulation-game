@@ -75,4 +75,21 @@ describe('GameTime', () => {
     expect(slow.day).toBe(2)
     expect(fast.day).toBe(6)
   })
+
+  it('resets to the first morning on ×1', () => {
+    const time = new GameTime()
+    time.setSpeed(GameSpeed.Pause)
+    time.update(time.msPerDay * 40)
+    time.restore({
+      year: 1702,
+      month: 4,
+      day: 8,
+      elapsedMs: time.msPerDay / 2,
+      speed: GameSpeed.Pause,
+    })
+    time.reset()
+    expect(time.formatDate()).toBe('1700年 1月 1日（月）')
+    expect(time.formatClock()).toBe('0時00分')
+    expect(time.speed).toBe(GameSpeed.X1)
+  })
 })
