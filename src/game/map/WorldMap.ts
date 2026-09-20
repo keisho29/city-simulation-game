@@ -6,7 +6,7 @@ import {
   type StockKind,
 } from '../economy/goods.ts'
 import { addBuildingXp, buildingVariantAt, houseSlots, jobSlots } from './growth.ts'
-import { generateLandscapeLayout, landscapeSeed } from './landscape.ts'
+import { generateLandscapeLayout, landscapeSeed, type LandscapeProfile } from './landscape.ts'
 import {
   Terrain,
   createTile,
@@ -352,9 +352,9 @@ export class WorldMap {
     })
   }
 
-  generateLandscape(seed = landscapeSeed()): void {
+  generateLandscape(seed = landscapeSeed(), profile?: LandscapeProfile): void {
     this.reset()
-    const layout = generateLandscapeLayout(this.width, this.height, seed)
+    const layout = generateLandscapeLayout(this.width, this.height, seed, profile)
     this.forEachTile((x, y, tile) => {
       tile.terrain = layout[y * this.width + x]
     })

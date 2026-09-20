@@ -10,6 +10,8 @@ import { Terrain, TileType } from '../map/tile.ts'
 import { createResident, ResidentState, type Resident, type TileRef } from '../residents/resident.ts'
 import { parseProgress, type ProgressState } from '../progress/progress.ts'
 import type { TransitStats } from '../transit/service.ts'
+import { RegionId, isRegionId } from '../world/regions.ts'
+import type { WorldSave } from '../world/WorldSession.ts'
 
 export const SAVE_VERSION = 1
 export const SAVE_STORAGE_KEY = 'city-simulation-game.save'
@@ -29,6 +31,7 @@ export type SaveSnapshot = {
   event: CityEventState
   progress: ProgressState
   transit: TransitStats
+  world: WorldSave
 }
 
 const TILE_TYPES = new Set<string>(Object.values(TileType))
@@ -95,6 +98,12 @@ export function parseSnapshot(raw: unknown): SaveSnapshot | undefined {
     event: parseEvent(raw.event),
     progress: parseProgress(raw.progress),
     transit: parseTransit(raw.transit),
+    world: parseWorld(raw.world, {
+      tiles,
+      residents,
+      event: parseEvent(raw.event),
+      transit: parseTransit(raw.transit),
+    }),
   }
 }
 
@@ -225,6 +234,69 @@ function parseTransit(raw: unknown): TransitStats {
     fares: isFiniteNumber(raw.fares) ? Math.max(0, raw.fares) : 0,
     freight: isFiniteNumber(raw.freight) ? Math.max(0, raw.freight) : 0,
   }
+}
+
+function parseWorld(
+  raw: unknown,
+  edo: {
+    tiles: Tile[]
+    residents: Resident[]
+    event: CityEventState
+    transit: TransitStats
+  },
+): WorldSave {
+  if (!isRecord(raw) || !Array.isArray(raw.regions)) {
+    return {
+      active: RegionId.Edo,
+      regions: [
+        {
+          id: RegionId.Edo,
+          unlocked: true,
+          tiles: edo.tiles,
+          residents: edo.residents,
+          event: edo.event,
+          transit: edo.transit,
+        },
+      ],
+    }
+  }
+
+  const regions = []
+  for (const entry of raw.regions) {
+    if (!isRecord(entry) || !isRegionId(entry.id)) {
+      continue
+    }
+    const tiles = Array.isArray(entry.tiles)
+      ? entry.tiles.map((tile) => parseTile(tile)).filter((tile): tile is Tile => Boolean(tile))
+      : undefined
+    const residents = Array.isArray(entry.residents)
+      ? entry.residents
+          .map((resident) => parseResident(resident))
+          .filter((resident): resident is Resident => Boolean(resident))
+      : undefined
+    regions.push({
+      id: entry.id,
+      unlocked: Boolean(entry.unlocked),
+      tiles: tiles && tiles.length > 0 ? tiles : undefined,
+      residents,
+      event: parseEvent(entry.event),
+      transit: parseTransit(entry.transit),
+    })
+  }
+
+  if (!regions.some((region) => region.id === RegionId.Edo)) {
+    regions.unshift({
+      id: RegionId.Edo,
+      unlocked: true,
+      tiles: edo.tiles,
+      residents: edo.residents,
+      event: edo.event,
+      transit: edo.transit,
+    })
+  }
+
+  const active = isRegionId(raw.active) ? raw.active : RegionId.Edo
+  return { active, regions }
 }
 
 function parseEvent(raw: unknown): CityEventState {

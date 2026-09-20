@@ -42,6 +42,8 @@ export class ResidentSim {
   cityProgress: ProgressState
   lastDiscoveries: ReturnType<typeof tickTechDiscovery> = []
   readonly transit: TransitService
+  climateHarvest = 1
+  climateWood = 1
   private readonly map: WorldMap
   private inflowHours = 0
 
@@ -54,7 +56,7 @@ export class ResidentSim {
   ) {
     this.map = map
     this.cityEvent = cityEvent ? { ...cityEvent } : createCityEvent()
-    this.cityProgress = createProgress(progress)
+    this.cityProgress = progress ?? createProgress()
     this.transit = new TransitService(transit)
     if (residents) {
       this.residents = residents.map((resident) => createResident(resident))
@@ -106,6 +108,7 @@ export class ResidentSim {
     hour: number,
     isHoliday = false,
     treasury?: Treasury,
+    move = true,
   ): void {
     if (speed === 0 || deltaMs <= 0) {
       return
@@ -116,8 +119,9 @@ export class ResidentSim {
     this.cityEvent = tickCityEvents(this.cityEvent, gameHours)
     const harvest =
       harvestMultiplier(this.cityEvent) *
-      (hasTech(this.cityProgress, TechId.Farming) ? FARMING_HARVEST_BONUS : 1)
-    tickProduction(this.map, gameHours, harvest)
+      (hasTech(this.cityProgress, TechId.Farming) ? FARMING_HARVEST_BONUS : 1) *
+      this.climateHarvest
+    tickProduction(this.map, gameHours, harvest, this.climateWood)
 
     for (const resident of this.residents) {
       tickNeeds(resident, this.map, gameHours)
@@ -128,7 +132,9 @@ export class ResidentSim {
       tryStartHaul(resident, this.map)
       maybeStartShopping(resident, this.map, hour, isHoliday)
       relocateIfNeeded(this.map, [resident])
-      this.walkTowardGoal(resident, deltaMs, speed, hour, isHoliday, treasury)
+      if (move) {
+        this.walkTowardGoal(resident, deltaMs, speed, hour, isHoliday, treasury)
+      }
     }
 
     this.fillOpenedSlots()

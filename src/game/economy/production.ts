@@ -12,6 +12,7 @@ export function tickProduction(
   map: WorldMap,
   gameHours: number,
   harvestMult = 1,
+  woodMult = 1,
 ): void {
   if (gameHours <= 0) {
     return
@@ -37,7 +38,7 @@ export function tickProduction(
 
     if (tile.type === TileType.Factory) {
       if (forest) {
-        map.addStock(x, y, StockKind.Wood, WOOD_PER_WORKER_HOUR * workers * gameHours)
+        map.addStock(x, y, StockKind.Wood, WOOD_PER_WORKER_HOUR * workers * woodMult * gameHours)
       }
       const converted = map.takeStock(
         x,
@@ -52,7 +53,7 @@ export function tickProduction(
     }
 
     if (tile.type === TileType.Warehouse && forest) {
-      map.addStock(x, y, StockKind.Wood, WOOD_PER_WORKER_HOUR * workers * gameHours)
+      map.addStock(x, y, StockKind.Wood, WOOD_PER_WORKER_HOUR * workers * woodMult * gameHours)
       return
     }
 
@@ -62,7 +63,7 @@ export function tickProduction(
           x,
           y,
           StockKind.Wood,
-          WOOD_PER_WORKER_HOUR * 0.6 * workers * gameHours,
+          WOOD_PER_WORKER_HOUR * 0.6 * workers * woodMult * gameHours,
         )
       }
       const converted = map.takeStock(

@@ -213,6 +213,18 @@
             <dd>50 × 50</dd>
           </div>
           <div>
+            <dt>地域</dt>
+            <dd id="hud-region">江戸</dd>
+          </div>
+          <div>
+            <dt>気候</dt>
+            <dd id="hud-climate">温暖</dd>
+          </div>
+          <div>
+            <dt>連路</dt>
+            <dd id="hud-links">未接続</dd>
+          </div>
+          <div>
             <dt>地価</dt>
             <dd id="hud-land-value">8</dd>
           </div>
@@ -337,6 +349,9 @@
         <p class="hud-hint" id="hud-hint">矢印キー / 右ドラッグで移動</p>
         <p class="hud-hint">ホイールで拡大縮小</p>
         <p class="hud-hint">進捗は自動保存されます</p>
+        <button type="button" id="open-world-map">
+          関東地図
+        </button>
         <button type="button" id="advance-era" hidden>
           1800年代へ進む
         </button>
@@ -345,6 +360,17 @@
         </button>
       </section>
     </aside>
+
+    <div id="world-map-overlay" hidden>
+      <section class="panel-card world-map-card">
+        <div class="panel-heading">
+          <h2>関東</h2>
+          <button type="button" id="world-map-close">閉じる</button>
+        </div>
+        <p class="hud-hint" id="world-map-hint">地域を選んで街を行き来できます。</p>
+        <div class="kanto-board" id="kanto-board"></div>
+      </section>
+    </div>
 
     <div id="toast-stack" aria-live="polite"></div>
 

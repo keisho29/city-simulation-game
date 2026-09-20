@@ -59,6 +59,8 @@ describe('parseSnapshot', () => {
     expect(parsed?.progress.discovered).toEqual([])
     expect(parsed?.transit.riders).toBe(0)
     expect(parsed?.transit.fares).toBe(0)
+    expect(parsed?.world.active).toBe('edo-city')
+    expect(parsed?.world.regions[0]?.unlocked).toBe(true)
   })
 
   it('restores era and discovered technologies', () => {

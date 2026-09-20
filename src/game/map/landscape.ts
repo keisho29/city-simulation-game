@@ -16,7 +16,19 @@ export function terrainDisplayName(terrain: Terrain): string {
   }
 }
 
-export function generateLandscapeLayout(width: number, height: number, seed: number): Terrain[] {
+export type LandscapeProfile = {
+  lakes?: number
+  rivers?: number
+  forests?: number
+  rocks?: number
+}
+
+export function generateLandscapeLayout(
+  width: number,
+  height: number,
+  seed: number,
+  profile: LandscapeProfile = {},
+): Terrain[] {
   const cells: Terrain[] = Array.from({ length: width * height }, () => Terrain.Grass)
   const rng = mulberry32(seed)
   const cx = Math.floor(width / 2)
@@ -30,19 +42,27 @@ export function generateLandscapeLayout(width: number, height: number, seed: num
     return dx * dx + dy * dy <= protectedRadius * protectedRadius
   }
 
-  const lake = pickScattered(width, height, rng, used, minGap, blocked)
-  if (lake) {
+  const lakes = profile.lakes ?? 1
+  for (let i = 0; i < lakes; i += 1) {
+    const lake = pickScattered(width, height, rng, used, minGap, blocked)
+    if (!lake) {
+      break
+    }
     used.push(lake)
     stampBlob(cells, width, height, lake, 1 + (rng() % 2), Terrain.Water, rng, blocked)
   }
 
-  const riverStart = pickScattered(width, height, rng, used, minGap, blocked)
-  if (riverStart) {
+  const rivers = profile.rivers ?? 1
+  for (let i = 0; i < rivers; i += 1) {
+    const riverStart = pickScattered(width, height, rng, used, minGap, blocked)
+    if (!riverStart) {
+      break
+    }
     used.push(riverStart)
     carveShortRiver(cells, width, height, riverStart, rng, blocked)
   }
 
-  const forestCount = countForSize(width, height, 3, 1)
+  const forestCount = profile.forests ?? countForSize(width, height, 3, 1)
   for (let i = 0; i < forestCount; i += 1) {
     const center = pickScattered(width, height, rng, used, minGap, blocked)
     if (!center) {
@@ -52,7 +72,7 @@ export function generateLandscapeLayout(width: number, height: number, seed: num
     plantGrove(cells, width, height, center, rng, blocked)
   }
 
-  const rockCount = countForSize(width, height, 3, 1)
+  const rockCount = profile.rocks ?? countForSize(width, height, 3, 1)
   for (let i = 0; i < rockCount; i += 1) {
     const center = pickScattered(width, height, rng, used, minGap, blocked)
     if (!center) {

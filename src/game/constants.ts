@@ -35,6 +35,9 @@ export type GameSpeed = (typeof GameSpeed)[keyof typeof GameSpeed]
 export const HOUSE_CAPACITY = 1
 export const JOB_CAPACITY = 1
 export const INITIAL_RESIDENT_COUNT = 20
+export const NEW_REGION_RESIDENT_COUNT = 6
+export const MIGRATION_INTERVAL_HOURS = 8
+export const INTER_TRADE_PER_HOUR = 1.6
 export const INITIAL_FUNDS = 1000
 /** 開発用。完了したら false にして通常の資金消費に戻す。 */
 export const DEV_FREEZE_FUNDS = true
