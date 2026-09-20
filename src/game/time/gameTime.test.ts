@@ -10,7 +10,19 @@ describe('GameTime', () => {
     expect(time.day).toBe(1)
     expect(time.speed).toBe(GameSpeed.X1)
     expect(time.formatDate()).toBe('1700年 1月 1日')
+    expect(time.formatClock()).toBe('0時00分')
     expect(time.msPerDay).toBe(3 * 60 * 1000)
+  })
+
+  it('reports hour and minute within a day', () => {
+    const time = new GameTime(1700, 1, 1, 30_000)
+    const minutesPerDay = 24 * 60
+
+    expect(time.update((time.msPerDay * 60) / minutesPerDay)).toBe(false)
+    expect(time.formatClock()).toBe('1時00分')
+
+    time.update((time.msPerDay * (12 * 60 + 30 - 60)) / minutesPerDay)
+    expect(time.formatClock()).toBe('12時30分')
   })
 
   it('does not advance while paused', () => {

@@ -45,14 +45,29 @@ body {
 }
 
 .hud-date {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 16px;
   font-weight: 600;
   color: #f2e6c4;
 }
 
+.hud-clock {
+  margin: 0 0 4px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f2e6c4;
+}
+
+.hud-funds {
+  margin: 0 0 8px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #e4c36a;
+}
+
 .hud-meta {
-  margin: 0 0 10px;
+  margin: 0 0 4px;
   font-size: 13px;
   color: #c5d4b0;
 }
@@ -92,10 +107,14 @@ body {
 }
 
 .hud-hint {
-  margin: 0;
+  margin: 8px 0 0;
   font-size: 12px;
   line-height: 1.5;
   color: #aeb99d;
+}
+
+.hud-hint + .hud-hint {
+  margin-top: 0;
 }
 
 #build-menu {

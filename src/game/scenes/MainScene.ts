@@ -8,11 +8,19 @@ import {
 } from '../buildings/catalog.ts'
 import { drawBuilding } from '../buildings/drawBuilding.ts'
 import {
+  INITIAL_FUNDS,
   MAX_CAMERA_ZOOM,
   MIN_CAMERA_ZOOM,
 } from '../constants.ts'
+import { Treasury } from '../economy/treasury.ts'
 import { TileType } from '../map/tile.ts'
 import { WorldMap } from '../map/WorldMap.ts'
+import { ResidentSim } from '../residents/ResidentSim.ts'
+import {
+  SAVE_VERSION,
+  loadSnapshot,
+  writeSnapshot,
+} from '../save/save.ts'
 import { GameTime } from '../time/gameTime.ts'
 import { bindBuildMenu } from '../ui/buildMenu.ts'
 import { bindSpeedMenu } from '../ui/speedMenu.ts'
@@ -23,6 +31,7 @@ const GRID_COLOR = 0x3f5a2c
 const MAP_EDGE = 0x2c3f1e
 const HOVER_VALID = 0xf2e6c4
 const HOVER_INVALID = 0xc4453c
+const SAVE_INTERVAL_MS = 5000
 
 export class MainScene extends Phaser.Scene {
   private worldMap = new WorldMap()
@@ -34,6 +43,15 @@ export class MainScene extends Phaser.Scene {
   private hoverTile: { x: number; y: number } | undefined
   private gameTime = new GameTime()
   private dateLabel: HTMLElement | null = null
+  private clockLabel: HTMLElement | null = null
+  private populationLabel: HTMLElement | null = null
+  private employmentLabel: HTMLElement | null = null
+  private happinessLabel: HTMLElement | null = null
+  private fundsLabel: HTMLElement | null = null
+  private residentSim: ResidentSim | undefined
+  private treasury = new Treasury(INITIAL_FUNDS)
+  private residentMarkers: Phaser.GameObjects.Arc[] = []
+  private saveAccumMs = 0
 
   constructor() {
     super('MainScene')
@@ -51,8 +69,22 @@ export class MainScene extends Phaser.Scene {
       onPaintModeChange: (mode) => this.setPaintMode(mode),
     })
     this.dateLabel = document.querySelector('#hud-date')
+    this.clockLabel = document.querySelector('#hud-clock')
+    this.populationLabel = document.querySelector('#hud-population')
+    this.employmentLabel = document.querySelector('#hud-employment')
+    this.happinessLabel = document.querySelector('#hud-happiness')
+    this.fundsLabel = document.querySelector('#hud-funds')
     this.renderDate()
-    bindSpeedMenu((speed) => this.gameTime.setSpeed(speed))
+    this.renderClock()
+    this.loadOrStartGame()
+    bindSpeedMenu((speed) => {
+      this.gameTime.setSpeed(speed)
+      this.persistGame()
+    }, this.gameTime.speed)
+    this.createResidentMarkers()
+    this.redrawBuildings()
+    this.renderCityHud()
+    this.setupAutosave()
   }
 
   update(_time: number, delta: number): void {
@@ -60,11 +92,134 @@ export class MainScene extends Phaser.Scene {
     if (this.gameTime.update(delta)) {
       this.renderDate()
     }
+    this.renderClock()
+
+    this.residentSim?.update(delta, this.gameTime.speed, this.gameTime.hour)
+    this.syncResidentMarkers()
+    this.renderCityHud()
+
+    this.saveAccumMs += delta
+    if (this.saveAccumMs >= SAVE_INTERVAL_MS) {
+      this.saveAccumMs = 0
+      this.persistGame()
+    }
+  }
+
+  private loadOrStartGame(): void {
+    const snapshot = loadSnapshot(window.localStorage)
+    if (
+      snapshot &&
+      snapshot.mapWidth === this.worldMap.width &&
+      snapshot.mapHeight === this.worldMap.height &&
+      this.worldMap.restoreTiles(snapshot.tiles)
+    ) {
+      this.gameTime.restore({
+        year: snapshot.year,
+        month: snapshot.month,
+        day: snapshot.day,
+        elapsedMs: snapshot.elapsedMs,
+        speed: snapshot.speed,
+      })
+      this.treasury.funds = snapshot.funds
+      this.residentSim = new ResidentSim(this.worldMap, snapshot.residents)
+      this.renderDate()
+      this.renderClock()
+      return
+    }
+
+    this.residentSim = new ResidentSim(this.worldMap)
+  }
+
+  private persistGame(): void {
+    if (!this.residentSim) {
+      return
+    }
+
+    writeSnapshot(window.localStorage, {
+      version: SAVE_VERSION,
+      year: this.gameTime.year,
+      month: this.gameTime.month,
+      day: this.gameTime.day,
+      elapsedMs: this.gameTime.elapsedMs,
+      speed: this.gameTime.speed,
+      funds: this.treasury.funds,
+      mapWidth: this.worldMap.width,
+      mapHeight: this.worldMap.height,
+      tiles: this.worldMap.snapshotTiles(),
+      residents: this.residentSim.residents,
+    })
+  }
+
+  private setupAutosave(): void {
+    const persist = () => this.persistGame()
+    window.addEventListener('pagehide', persist)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        persist()
+      }
+    })
   }
 
   private renderDate(): void {
     if (this.dateLabel) {
       this.dateLabel.textContent = this.gameTime.formatDate()
+    }
+  }
+
+  private renderClock(): void {
+    if (this.clockLabel) {
+      this.clockLabel.textContent = this.gameTime.formatClock()
+    }
+  }
+
+  private createResidentMarkers(): void {
+    if (!this.residentSim) {
+      return
+    }
+
+    for (const marker of this.residentMarkers) {
+      marker.destroy()
+    }
+
+    this.residentMarkers = this.residentSim.residents.map((resident) =>
+      this.add
+        .circle(resident.worldX, resident.worldY, 7, 0xf2c14e)
+        .setStrokeStyle(2, 0x3a2714)
+        .setDepth(3),
+    )
+  }
+
+  private syncResidentMarkers(): void {
+    if (!this.residentSim) {
+      return
+    }
+
+    this.residentSim.residents.forEach((resident, index) => {
+      this.residentMarkers[index]?.setPosition(resident.worldX, resident.worldY)
+    })
+  }
+
+  private renderCityHud(): void {
+    if (!this.residentSim) {
+      return
+    }
+
+    const population = this.residentSim.residents.length
+    const housed = this.residentSim.housedCount()
+    const employed = this.residentSim.employedCount()
+    const happiness = this.residentSim.averageHappiness()
+
+    if (this.populationLabel) {
+      this.populationLabel.textContent = `人口 ${population}人 ・ 入居 ${housed}/${population}`
+    }
+    if (this.employmentLabel) {
+      this.employmentLabel.textContent = `雇用 ${employed}/${population}`
+    }
+    if (this.happinessLabel) {
+      this.happinessLabel.textContent = `幸福 ${happiness}`
+    }
+    if (this.fundsLabel) {
+      this.fundsLabel.textContent = `資金 ${this.treasury.funds.toLocaleString('ja-JP')}`
     }
   }
 
@@ -287,7 +442,10 @@ export class MainScene extends Phaser.Scene {
       return
     }
 
-    const canPlace = this.worldMap.canPlace(x, y)
+    const canAfford =
+      !isBuildingTool(this.selectedTool) ||
+      this.treasury.canAfford(BUILDINGS[this.selectedTool].cost)
+    const canPlace = this.worldMap.canPlace(x, y) && canAfford
     if (canPlace && isBuildingTool(this.selectedTool)) {
       drawBuilding(graphics, x, y, size, BUILDINGS[this.selectedTool].tileType, 0.55)
       graphics.lineStyle(2, HOVER_VALID, 0.9)
@@ -313,12 +471,20 @@ export class MainScene extends Phaser.Scene {
     }
 
     const building = BUILDINGS[this.selectedTool]
+    if (!this.treasury.canAfford(building.cost)) {
+      return
+    }
     if (!this.worldMap.place(x, y, building.tileType)) {
       return
     }
 
+    this.treasury.spend(building.cost)
     drawBuilding(this.buildingGraphics, x, y, this.worldMap.tileSize, building.tileType)
+    this.residentSim?.refreshHousing()
+    this.residentSim?.refreshJobs()
+    this.renderCityHud()
     this.redrawHover()
+    this.persistGame()
   }
 
   private eraseTile(x: number, y: number): void {
@@ -327,7 +493,10 @@ export class MainScene extends Phaser.Scene {
     }
 
     this.redrawBuildings()
+    this.residentSim?.refreshHousing()
+    this.residentSim?.refreshJobs()
     this.redrawHover()
+    this.persistGame()
   }
 
   private redrawBuildings(): void {

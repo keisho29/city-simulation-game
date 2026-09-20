@@ -1,6 +1,9 @@
 import { GameSpeed } from '../constants.ts'
 
-export function bindSpeedMenu(onChange: (speed: GameSpeed) => void): void {
+export function bindSpeedMenu(
+  onChange: (speed: GameSpeed) => void,
+  initialSpeed: GameSpeed = GameSpeed.X1,
+): void {
   const menu = document.querySelector('#speed-menu')
   if (!(menu instanceof HTMLElement)) {
     return
@@ -32,5 +35,5 @@ export function bindSpeedMenu(onChange: (speed: GameSpeed) => void): void {
     })
   }
 
-  setSpeed(GameSpeed.X1)
+  setSpeed(initialSpeed)
 }

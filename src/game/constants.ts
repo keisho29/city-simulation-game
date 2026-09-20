@@ -24,3 +24,23 @@ export const GameSpeed = {
 
 export type GameSpeed = (typeof GameSpeed)[keyof typeof GameSpeed]
 
+export const HOUSE_CAPACITY = 1
+export const JOB_CAPACITY = 1
+export const INITIAL_RESIDENT_COUNT = 20
+export const INITIAL_FUNDS = 1000
+export const RESIDENT_MOVE_SPEED = 48
+
+export const HAPPINESS_BASE = 50
+export const HAPPINESS_HAS_JOB = 20
+export const HAPPINESS_NO_JOB = -10
+export const HAPPINESS_NO_HOME = -15
+export const HAPPINESS_SHORT_COMMUTE = 10
+export const HAPPINESS_LONG_COMMUTE = -10
+export const SHORT_COMMUTE_DISTANCE = 5
+export const LONG_COMMUTE_DISTANCE = 15
+
+/** この時刻（含む）から出勤する。 */
+export const WORK_START_HOUR = 8
+/** この時刻（含む）から帰宅する。 */
+export const WORK_END_HOUR = 17
+

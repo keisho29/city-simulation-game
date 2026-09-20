@@ -13,7 +13,7 @@ export class GameTime {
   day: number
   speed: GameSpeed
   private readonly msPerMonth: number
-  private elapsedMs = 0
+  private elapsed = 0
 
   constructor(
     year = START_YEAR,
@@ -32,8 +32,34 @@ export class GameTime {
     return this.msPerMonth / DAYS_PER_MONTH
   }
 
+  get hour(): number {
+    return Math.floor(this.minutesOfDay / 60)
+  }
+
+  get minute(): number {
+    return this.minutesOfDay % 60
+  }
+
+  get elapsedMs(): number {
+    return this.elapsed
+  }
+
   setSpeed(speed: GameSpeed): void {
     this.speed = speed
+  }
+
+  restore(snapshot: {
+    year: number
+    month: number
+    day: number
+    elapsedMs: number
+    speed: GameSpeed
+  }): void {
+    this.year = snapshot.year
+    this.month = snapshot.month
+    this.day = snapshot.day
+    this.elapsed = snapshot.elapsedMs
+    this.speed = snapshot.speed
   }
 
   update(deltaMs: number): boolean {
@@ -41,12 +67,12 @@ export class GameTime {
       return false
     }
 
-    this.elapsedMs += deltaMs * this.speed
+    this.elapsed += deltaMs * this.speed
     let changed = false
     const dayLength = this.msPerDay
 
-    while (this.elapsedMs >= dayLength) {
-      this.elapsedMs -= dayLength
+    while (this.elapsed >= dayLength) {
+      this.elapsed -= dayLength
       this.advanceDay()
       changed = true
     }
@@ -56,6 +82,18 @@ export class GameTime {
 
   formatDate(): string {
     return `${this.year}年 ${this.month}月 ${this.day}日`
+  }
+
+  formatClock(): string {
+    return `${this.hour}時${String(this.minute).padStart(2, '0')}分`
+  }
+
+  private get minutesOfDay(): number {
+    const totalMinutes = 24 * 60
+    return Math.min(
+      totalMinutes - 1,
+      Math.floor((this.elapsed / this.msPerDay) * totalMinutes),
+    )
   }
 
   private advanceDay(): void {

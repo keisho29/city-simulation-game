@@ -38,7 +38,7 @@ export function bindBuildMenu(handlers: BuildMenuHandlers): void {
 
     if (isBuildingTool(currentTool)) {
       const action = currentMode === PaintMode.Drag ? 'ドラッグして' : 'クリックして'
-      hint.textContent = `空き地を${action}${BUILDINGS[currentTool].name}を置く`
+      hint.textContent = `空き地を${action}${BUILDINGS[currentTool].name}を置く（${BUILDINGS[currentTool].cost}）`
       return
     }
 
