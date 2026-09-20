@@ -120,7 +120,7 @@ export function residentArtKey(
   if (jobType === TileType.Clinic || jobType === TileType.School) {
     return 'artisan'
   }
-  if (jobType === TileType.Factory) {
+  if (jobType === TileType.Factory || jobType === TileType.Station || jobType === TileType.Airport) {
     return 'artisan'
   }
 

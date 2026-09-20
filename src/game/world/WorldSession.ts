@@ -1,4 +1,5 @@
 import {
+  INACTIVE_TICK_BATCH,
   MS_PER_DAY_AT_SPEED_1,
   NEW_REGION_RESIDENT_COUNT,
   type GameSpeed,
@@ -7,12 +8,16 @@ import { createCityEvent } from '../city/events.ts'
 import type { Treasury } from '../economy/treasury.ts'
 import { WorldMap } from '../map/WorldMap.ts'
 import { createProgress, type ProgressState } from '../progress/progress.ts'
+import { TechId } from '../progress/tech.ts'
 import { residentAge, residentName } from '../residents/names.ts'
 import { createResident, type Resident } from '../residents/resident.ts'
 import { ResidentSim } from '../residents/ResidentSim.ts'
 import type { TransitStats } from '../transit/service.ts'
 import { tickMigration } from './migration.ts'
 import {
+  CountryId,
+  JAPAN_REGION_IDS,
+  OVERSEAS_REGION_IDS,
   REGION_IDS,
   REGIONS,
   RegionId,
@@ -22,7 +27,6 @@ import {
   type RegionId as RegionIdType,
 } from './regions.ts'
 import { extraSupplyFromLinks, tickInterRegionTrade, tradeHint, type TradeMoved } from './trade.ts'
-import { TechId } from '../progress/tech.ts'
 
 export type RegionSave = {
   id: RegionIdType
@@ -41,8 +45,22 @@ export type WorldSave = {
 export type RegionRuntime = {
   id: RegionIdType
   unlocked: boolean
-  map: WorldMap
+  map: WorldMap | undefined
   sim: ResidentSim | undefined
+  pendingMs: number
+}
+
+export type WorldCensus = {
+  unlocked: number
+  total: number
+  japanUnlocked: number
+  japanTotal: number
+  overseasUnlocked: number
+  overseasTotal: number
+  countries: number
+  population: number
+  japanPopulation: number
+  overseasPopulation: number
 }
 
 export class WorldSession {
@@ -53,6 +71,7 @@ export class WorldSession {
   lastMoves: string[] = []
   lastTrade: TradeMoved = { food: 0, wood: 0, goods: 0 }
   private migrateHours = { hours: 0 }
+  private inactiveCursor = 0
 
   constructor(progress?: ProgressState, saved?: WorldSave) {
     this.progress = progress ?? createProgress()
@@ -69,8 +88,10 @@ export class WorldSession {
     }
   }
 
-  get active(): RegionRuntime {
-    return this.region(this.activeId) ?? this.regions[0]!
+  get active(): RegionRuntime & { map: WorldMap; sim: ResidentSim } {
+    const region = this.region(this.activeId) ?? this.regions[0]!
+    this.materialize(region)
+    return region as RegionRuntime & { map: WorldMap; sim: ResidentSim }
   }
 
   region(id: RegionIdType): RegionRuntime | undefined {
@@ -79,7 +100,11 @@ export class WorldSession {
 
   switchTo(id: RegionIdType): boolean {
     const next = this.region(id)
-    if (!next?.unlocked || !next.sim) {
+    if (!next?.unlocked) {
+      return false
+    }
+    this.materialize(next)
+    if (!next.sim) {
       return false
     }
     this.activeId = id
@@ -93,11 +118,31 @@ export class WorldSession {
     isHoliday: boolean,
     treasury?: Treasury,
   ): void {
+    const inactive: RegionRuntime[] = []
     for (const region of this.regions) {
       if (!region.unlocked || !region.sim) {
         continue
       }
-      region.sim.update(deltaMs, speed, hour, isHoliday, treasury, region.id === this.activeId)
+      if (region.id === this.activeId) {
+        region.pendingMs = 0
+        region.sim.update(deltaMs, speed, hour, isHoliday, treasury, true)
+        continue
+      }
+      region.pendingMs += deltaMs
+      inactive.push(region)
+    }
+
+    if (inactive.length > 0) {
+      const batch = Math.min(INACTIVE_TICK_BATCH, inactive.length)
+      for (let i = 0; i < batch; i += 1) {
+        const region = inactive[(this.inactiveCursor + i) % inactive.length]
+        if (!region?.sim || region.pendingMs <= 0) {
+          continue
+        }
+        region.sim.update(region.pendingMs, speed, hour, isHoliday, treasury, false)
+        region.pendingMs = 0
+      }
+      this.inactiveCursor = (this.inactiveCursor + batch) % inactive.length
     }
 
     this.lastUnlocks = this.tryUnlock()
@@ -159,11 +204,50 @@ export class WorldSession {
       regions: this.regions.map((region) => ({
         id: region.id,
         unlocked: region.unlocked,
-        tiles: region.unlocked ? region.map.snapshotTiles() : undefined,
+        tiles: region.unlocked && region.map ? region.map.snapshotTiles() : undefined,
         residents: region.sim?.residents,
         event: region.sim?.cityEvent,
         transit: region.sim?.transit.stats,
       })),
+    }
+  }
+
+  census(): WorldCensus {
+    let population = 0
+    let japanPopulation = 0
+    let overseasPopulation = 0
+    const countries = new Set<string>()
+    let unlocked = 0
+    let japanUnlocked = 0
+    let overseasUnlocked = 0
+    for (const region of this.regions) {
+      if (!region.unlocked) {
+        continue
+      }
+      unlocked += 1
+      const def = REGIONS[region.id]
+      countries.add(def.country)
+      const count = region.sim?.residents.length ?? 0
+      population += count
+      if (def.country === CountryId.Japan) {
+        japanUnlocked += 1
+        japanPopulation += count
+      } else {
+        overseasUnlocked += 1
+        overseasPopulation += count
+      }
+    }
+    return {
+      unlocked,
+      total: REGION_IDS.length,
+      japanUnlocked,
+      japanTotal: JAPAN_REGION_IDS.length,
+      overseasUnlocked,
+      overseasTotal: OVERSEAS_REGION_IDS.length,
+      countries: countries.size,
+      population,
+      japanPopulation,
+      overseasPopulation,
     }
   }
 
@@ -179,31 +263,64 @@ export class WorldSession {
     return linkedRegions(id, this.mapTable(), this.unlockedSet())
   }
 
+  mapOf(id: RegionIdType): WorldMap | undefined {
+    const region = this.region(id)
+    if (!region) {
+      return undefined
+    }
+    if (!region.map) {
+      region.map = new WorldMap()
+    }
+    return region.map
+  }
+
   private unlockRegion(region: RegionRuntime): void {
     const def = REGIONS[region.id]
-    region.map.generateLandscape(def.seed, def.landscape)
+    const map = this.ensureMap(region)
+    map.generateLandscape(def.seed, def.landscape)
     region.unlocked = true
     region.sim = this.makeSim(
       region.id,
-      region.map,
-      starterResidents(region.id, region.map, NEW_REGION_RESIDENT_COUNT),
+      map,
+      starterResidents(region.id, map, NEW_REGION_RESIDENT_COUNT),
     )
   }
 
   private createRegion(id: RegionIdType, saved?: RegionSave): RegionRuntime {
-    const def = REGIONS[id]
-    const map = new WorldMap()
     const unlocked = id === RegionId.Edo || Boolean(saved?.unlocked)
-    if (saved?.tiles && saved.tiles.length === map.tileCount) {
-      map.restoreTiles(saved.tiles)
-    } else if (unlocked) {
-      map.generateLandscape(id === RegionId.Edo ? undefined : def.seed, def.landscape)
+    if (!unlocked) {
+      return { id, unlocked: false, map: undefined, sim: undefined, pendingMs: 0 }
     }
 
-    const sim = unlocked
-      ? this.makeSim(id, map, saved?.residents, saved?.event, saved?.transit)
-      : undefined
-    return { id, unlocked, map, sim }
+    const def = REGIONS[id]
+    const map = new WorldMap()
+    if (saved?.tiles && saved.tiles.length === map.tileCount) {
+      map.restoreTiles(saved.tiles)
+    } else {
+      map.generateLandscape(id === RegionId.Edo ? undefined : def.seed, def.landscape)
+    }
+    return {
+      id,
+      unlocked: true,
+      map,
+      sim: this.makeSim(id, map, saved?.residents, saved?.event, saved?.transit),
+      pendingMs: 0,
+    }
+  }
+
+  private materialize(region: RegionRuntime): void {
+    const map = this.ensureMap(region)
+    if (!region.sim) {
+      region.sim = this.makeSim(region.id, map)
+    }
+    region.unlocked = true
+  }
+
+  private ensureMap(region: RegionRuntime): WorldMap {
+    if (!region.map) {
+      region.map = new WorldMap()
+    }
+    return region.map
   }
 
   private makeSim(
@@ -222,7 +339,9 @@ export class WorldSession {
 
   private mapTable(): Map<RegionIdType, WorldMap> {
     return new Map(
-      this.regions.filter((region) => region.unlocked).map((region) => [region.id, region.map]),
+      this.regions
+        .filter((region) => region.unlocked && region.map)
+        .map((region) => [region.id, region.map!]),
     )
   }
 

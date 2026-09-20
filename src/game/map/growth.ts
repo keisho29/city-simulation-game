@@ -90,6 +90,9 @@ export function buildingDisplayName(type: TileType, level: number, variant: numb
   if (type === TileType.Port) {
     return level >= 3 ? '大きな港' : level === 2 ? '船着場' : '港'
   }
+  if (type === TileType.Airport) {
+    return level >= 3 ? '国際空港' : level === 2 ? '飛行場' : '空港'
+  }
   if (type === TileType.Road) {
     return '道路'
   }
@@ -129,6 +132,8 @@ export function buildingTint(
       tint = level >= 3 ? 0xd0d8e8 : 0xe4e8f0
     } else if (type === TileType.Port) {
       tint = level >= 3 ? 0xc8e0f0 : 0xd8ecf8
+    } else if (type === TileType.Airport) {
+      tint = level >= 3 ? 0xc0d0e8 : 0xd4dcec
     } else {
       tint = level >= 3 ? 0xd0ff90 : 0xe8ffb0
     }
@@ -149,6 +154,9 @@ export function buildingTint(
     }
     if (type === TileType.Port) {
       return 0xc4dcec
+    }
+    if (type === TileType.Airport) {
+      return 0xd0d8e8
     }
     if (tint === 0xffffff) {
       return 0xe4f0d8

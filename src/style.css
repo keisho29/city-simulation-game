@@ -492,20 +492,52 @@ body {
 }
 
 .world-map-card {
-  width: min(420px, calc(100% - 32px));
+  width: min(520px, calc(100% - 32px));
   pointer-events: auto;
+}
+
+.world-map-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 8px 0 0;
+}
+
+.world-map-tabs button {
+  flex: 1;
+  padding: 6px 8px;
+  border: 2px solid #5a3a18;
+  border-radius: 8px;
+  background: #fff3c4;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.world-map-tabs button.is-active {
+  background: #3da646;
+  color: #fffdf4;
 }
 
 .kanto-board {
   position: relative;
   width: 100%;
-  height: 220px;
+  height: 260px;
   margin-top: 8px;
   border: 2px solid #5a3a18;
   border-radius: 12px;
   background:
     radial-gradient(circle at 70% 20%, rgba(120, 180, 90, 0.35), transparent 40%),
     linear-gradient(#8fd45a, #5aaa38);
+}
+
+.earth-board {
+  height: 280px;
+  background:
+    radial-gradient(circle at 22% 32%, rgba(90, 140, 210, 0.45), transparent 28%),
+    radial-gradient(circle at 78% 42%, rgba(120, 180, 90, 0.4), transparent 32%),
+    linear-gradient(#4a8ad4, #2f6aaa);
 }
 
 .kanto-node {
@@ -518,7 +550,7 @@ body {
   background: linear-gradient(#fff8e0, #f0dca8);
   color: var(--text);
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   cursor: pointer;
 }
@@ -531,6 +563,10 @@ body {
 .kanto-node.is-locked {
   opacity: 0.55;
   cursor: not-allowed;
+}
+
+.kanto-node.is-overseas {
+  background: linear-gradient(#e8f0ff, #c8d8f4);
 }
 
 #toast-stack {

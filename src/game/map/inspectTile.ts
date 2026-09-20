@@ -73,6 +73,9 @@ function transitLabel(map: WorldMap, x: number, y: number, tile: Tile): string {
     const links = connectedHubs(map, { x, y }, 'water').length
     return links > 0 ? `航路 接続${links}港` : '航路 未接続'
   }
+  if (tile.type === TileType.Airport) {
+    return '空路 拠点'
+  }
   if (tile.type === TileType.Road) {
     return '道路'
   }

@@ -115,7 +115,7 @@ export class ResidentSim {
     }
 
     const gameHours = gameHoursFromDelta(deltaMs, speed)
-    this.transit.tick(this.map, deltaMs, speed, gameHours, treasury)
+    this.transit.tick(this.map, deltaMs, speed, gameHours, treasury, move)
     this.cityEvent = tickCityEvents(this.cityEvent, gameHours)
     const harvest =
       harvestMultiplier(this.cityEvent) *

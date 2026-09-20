@@ -35,6 +35,7 @@ export const TILE_ATLAS_ORDER = [
   'factory',
   'station',
   'port',
+  'airport',
   ...Array.from({ length: ROAD_COUNT }, (_, index) => `rail-${index}`),
 ] as const
 
@@ -498,6 +499,22 @@ function makePort(): PixelSprite {
   return canvas.toSprite(LAND)
 }
 
+function makeAirport(): PixelSprite {
+  const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE)
+  canvas.fillRect(2, 24, 28, 6, 'Q')
+  canvas.fillRect(3, 25, 26, 4, 'J')
+  canvas.fillRect(4, 27, 24, 1, 'S')
+  canvas.fillRect(6, 10, 14, 14, 'B')
+  outlineRect(canvas, 6, 10, 14, 14, '#')
+  canvas.fillRect(8, 13, 4, 3, 'I')
+  canvas.fillRect(16, 13, 2, 8, 'H')
+  canvas.fillRect(15, 8, 4, 3, 'A')
+  canvas.fillRect(21, 18, 8, 4, 'Q')
+  canvas.fillRect(23, 16, 5, 2, 'S')
+  canvas.fillRect(10, 20, 6, 4, 'D')
+  return canvas.toSprite(LAND)
+}
+
 function makeRail(mask: number): PixelSprite {
   const canvas = new PixelCanvas(TILE_ART_SIZE, TILE_ART_SIZE, '8')
   for (let y = 0; y < TILE_ART_SIZE; y += 1) {
@@ -572,6 +589,7 @@ function buildSprites(): Record<TileAtlasKey, PixelSprite> {
     factory: makeFactory(),
     station: makeStation(),
     port: makePort(),
+    airport: makeAirport(),
   } as Record<TileAtlasKey, PixelSprite>
 
   for (let index = 0; index < ROAD_COUNT; index += 1) {
@@ -602,6 +620,7 @@ export const TILES_NEEDING_GRASS: ReadonlySet<TileAtlasKey> = new Set([
   'factory',
   'station',
   'port',
+  'airport',
 ])
 
 export function vacantTileKey(_x: number, _y: number): TileAtlasKey {
@@ -630,6 +649,7 @@ export const PROP_LAYOUT: Record<string, PropLayout> = {
   factory: { width: 1.9, height: 2.4, originX: 0.5, originY: 0.94 },
   station: { width: 1.85, height: 2.25, originX: 0.5, originY: 0.94 },
   port: { width: 1.9, height: 2.1, originX: 0.5, originY: 0.92 },
+  airport: { width: 1.95, height: 2.2, originX: 0.5, originY: 0.92 },
   tree: { width: 1.15, height: 1.55, originX: 0.5, originY: 0.96 },
   bush: { width: 1.1, height: 1.35, originX: 0.5, originY: 0.96 },
   flower: { width: 0.45, height: 0.45, originX: 0.5, originY: 0.78 },
@@ -688,6 +708,8 @@ export function buildingTileKey(type: TileType, connections = 0): TileAtlasKey |
       return `rail-${connections & 15}` as TileAtlasKey
     case TileType.Port:
       return 'port'
+    case TileType.Airport:
+      return 'airport'
     default:
       return undefined
   }

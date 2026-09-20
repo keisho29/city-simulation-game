@@ -122,7 +122,8 @@ function findHub(
     if (
       tile.type !== TileType.Warehouse &&
       tile.type !== TileType.Station &&
-      tile.type !== TileType.Port
+      tile.type !== TileType.Port &&
+      tile.type !== TileType.Airport
     ) {
       return
     }

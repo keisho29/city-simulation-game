@@ -171,6 +171,14 @@
           </svg>
           駅
         </button>
+        <button type="button" data-tool="airport" aria-pressed="false" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M3 17h18" />
+            <path d="M5 17V11l7-4 7 4v6" />
+            <path d="M12 7V4" />
+          </svg>
+          空港
+        </button>
       </div>
       <div class="menu-group" role="toolbar" aria-label="編集">
         <button type="button" data-tool="erase" aria-pressed="false">
@@ -217,12 +225,28 @@
             <dd id="hud-region">江戸</dd>
           </div>
           <div>
+            <dt>国</dt>
+            <dd id="hud-country">日本</dd>
+          </div>
+          <div>
+            <dt>地方</dt>
+            <dd id="hud-area">関東</dd>
+          </div>
+          <div>
+            <dt>適性</dt>
+            <dd id="hud-industry">商業</dd>
+          </div>
+          <div>
             <dt>気候</dt>
             <dd id="hud-climate">温暖</dd>
           </div>
           <div>
             <dt>連路</dt>
             <dd id="hud-links">未接続</dd>
+          </div>
+          <div>
+            <dt>世界</dt>
+            <dd id="hud-world">1/18都市</dd>
           </div>
           <div>
             <dt>地価</dt>
@@ -350,7 +374,7 @@
         <p class="hud-hint">ホイールで拡大縮小</p>
         <p class="hud-hint">進捗は自動保存されます</p>
         <button type="button" id="open-world-map">
-          関東地図
+          世界地図
         </button>
         <button type="button" id="advance-era" hidden>
           1800年代へ進む
@@ -364,11 +388,17 @@
     <div id="world-map-overlay" hidden>
       <section class="panel-card world-map-card">
         <div class="panel-heading">
-          <h2>関東</h2>
+          <h2>世界</h2>
           <button type="button" id="world-map-close">閉じる</button>
         </div>
-        <p class="hud-hint" id="world-map-hint">地域を選んで街を行き来できます。</p>
-        <div class="kanto-board" id="kanto-board"></div>
+        <p class="hud-hint" id="world-map-stats">開放 1/18都市</p>
+        <p class="hud-hint" id="world-map-hint">日本と海外を俯瞰できます。</p>
+        <div class="world-map-tabs" role="tablist">
+          <button type="button" data-world-view="japan" class="is-active">日本</button>
+          <button type="button" data-world-view="world">世界</button>
+        </div>
+        <div class="kanto-board japan-board" id="japan-board"></div>
+        <div class="kanto-board earth-board" id="earth-board" hidden></div>
       </section>
     </div>
 

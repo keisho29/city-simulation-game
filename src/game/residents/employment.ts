@@ -49,6 +49,8 @@ export function workplaceLabel(type: TileType | undefined): string | undefined {
       return '駅'
     case TileType.Port:
       return '港'
+    case TileType.Airport:
+      return '空港'
     default:
       return undefined
   }

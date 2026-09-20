@@ -3,7 +3,7 @@ import type { WorldMap } from '../map/WorldMap.ts'
 import { averageHappiness } from '../residents/happiness.ts'
 import { clearRide, ResidentState, type Resident } from '../residents/resident.ts'
 import { clearHaul } from '../economy/logistics.ts'
-import { linkedRegions, regionName, type RegionId } from './regions.ts'
+import { isOverseas, linkedRegions, regionName, type RegionId } from './regions.ts'
 
 export function tickMigration(
   maps: ReadonlyMap<RegionId, WorldMap>,
@@ -45,7 +45,11 @@ export function tickMigration(
 
     leaveRegion(fromMap, fromPeople, candidate)
     joinRegion(dest.map, dest.people, candidate)
-    notes.push(`${candidate.name}が${regionName(dest.id)}へ移った`)
+    notes.push(
+      isOverseas(dest.id)
+        ? `${candidate.name}が${regionName(dest.id)}へ渡った`
+        : `${candidate.name}が${regionName(dest.id)}へ移った`,
+    )
   }
 
   return notes

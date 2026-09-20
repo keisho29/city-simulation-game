@@ -55,6 +55,10 @@ describe('tech progress', () => {
     addTechProgress(progress, TechId.Railways, 80)
     expect(isBuildingUnlocked('station', progress)).toBe(true)
     expect(isBuildingUnlocked('rail', progress)).toBe(true)
+    expect(isBuildingUnlocked('airport', progress)).toBe(false)
+    expect(canDiscover(progress, TechId.Aviation)).toBe(true)
+    addTechProgress(progress, TechId.Aviation, 80)
+    expect(isBuildingUnlocked('airport', progress)).toBe(true)
   })
 
   it('unlocks a port after logistics is found', () => {

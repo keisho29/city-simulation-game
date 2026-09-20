@@ -4,6 +4,7 @@ import {
   FREIGHT_PER_HOUR,
   HUB_CATCH_RADIUS,
   PORT_UPKEEP_PER_HOUR,
+  AIRPORT_UPKEEP_PER_HOUR,
   RAIL_UPKEEP_PER_TILE_HOUR,
   STATION_UPKEEP_PER_HOUR,
   TRAIN_MOVE_SPEED,
@@ -79,9 +80,12 @@ export class TransitService {
     speed: number,
     gameHours: number,
     treasury?: Treasury,
+    animate = true,
   ): void {
     this.rebuildIfNeeded(map)
-    this.moveVehicles(map, deltaMs, speed, treasury)
+    if (animate) {
+      this.moveVehicles(map, deltaMs, speed, treasury)
+    }
     if (gameHours > 0) {
       this.stats.freight += tickFreight(map, gameHours)
       const upkeep = transitUpkeepPerHour(map) * gameHours
@@ -152,6 +156,9 @@ export function transitUpkeepPerHour(map: WorldMap): number {
     if (tile.type === TileType.Port) {
       upkeep += PORT_UPKEEP_PER_HOUR
     }
+    if (tile.type === TileType.Airport) {
+      upkeep += AIRPORT_UPKEEP_PER_HOUR
+    }
   })
   return upkeep
 }
@@ -170,6 +177,10 @@ export function tickFreight(map: WorldMap, gameHours: number): number {
   for (const port of tilesOfType(map, TileType.Port)) {
     moved += collectAround(map, port, amount)
     moved += distributeAround(map, port, amount)
+  }
+  for (const airport of tilesOfType(map, TileType.Airport)) {
+    moved += collectAround(map, airport, amount)
+    moved += distributeAround(map, airport, amount)
   }
   moved += balanceHubs(map, TileType.Station, 'rail', amount)
   moved += balanceHubs(map, TileType.Port, 'water', amount)
@@ -259,7 +270,8 @@ function transitLayoutKey(map: WorldMap): string {
     if (
       tile.type === TileType.Station ||
       tile.type === TileType.Rail ||
-      tile.type === TileType.Port
+      tile.type === TileType.Port ||
+      tile.type === TileType.Airport
     ) {
       parts.push(`${tile.type}:${x},${y}`)
     }

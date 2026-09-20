@@ -14,7 +14,7 @@ export const StockKind = {
 export type StockKind = (typeof StockKind)[keyof typeof StockKind]
 
 export function canStore(type: TileType, kind: StockKind): boolean {
-  if (type === TileType.Station || type === TileType.Port) {
+  if (type === TileType.Station || type === TileType.Port || type === TileType.Airport) {
     return true
   }
   if (kind === StockKind.Food) {
@@ -45,7 +45,7 @@ export function stockCapacity(tile: Tile): number {
   const bonus =
     tile.type === TileType.Warehouse
       ? WAREHOUSE_STOCK_BONUS
-      : tile.type === TileType.Station || tile.type === TileType.Port
+      : tile.type === TileType.Station || tile.type === TileType.Port || tile.type === TileType.Airport
         ? 16
         : 0
   return STOCK_CAP_BASE + STOCK_CAP_PER_LEVEL * tile.level + bonus

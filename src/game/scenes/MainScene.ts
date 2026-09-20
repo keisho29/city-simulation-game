@@ -55,7 +55,7 @@ import { bindResidentPanel } from '../ui/residentPanel.ts'
 import { bindSpeedMenu, type SpeedMenu } from '../ui/speedMenu.ts'
 import { bindWorldMap, type WorldMapUi } from '../ui/worldMap.ts'
 import { showToast } from '../ui/toast.ts'
-import { REGIONS, linkLabel, regionGrassTint, regionName, type RegionId } from '../world/regions.ts'
+import { REGIONS, areaName, countryName, linkLabel, regionGrassTint, regionName, type RegionId } from '../world/regions.ts'
 import { WorldSession } from '../world/WorldSession.ts'
 
 const MAP_EDGE = 0x3d7a18
@@ -94,8 +94,12 @@ export class MainScene extends Phaser.Scene {
   private eventLabel: HTMLElement | null = null
   private transitLabel: HTMLElement | null = null
   private regionLabel: HTMLElement | null = null
+  private countryLabel: HTMLElement | null = null
+  private areaLabel: HTMLElement | null = null
+  private industryLabel: HTMLElement | null = null
   private climateLabel: HTMLElement | null = null
   private linksLabel: HTMLElement | null = null
+  private worldLabel: HTMLElement | null = null
   private eraLabel: HTMLElement | null = null
   private developmentLabel: HTMLElement | null = null
   private techLabel: HTMLElement | null = null
@@ -156,8 +160,12 @@ export class MainScene extends Phaser.Scene {
     this.eventLabel = document.querySelector('#hud-event')
     this.transitLabel = document.querySelector('#hud-transit')
     this.regionLabel = document.querySelector('#hud-region')
+    this.countryLabel = document.querySelector('#hud-country')
+    this.areaLabel = document.querySelector('#hud-area')
+    this.industryLabel = document.querySelector('#hud-industry')
     this.climateLabel = document.querySelector('#hud-climate')
     this.linksLabel = document.querySelector('#hud-links')
+    this.worldLabel = document.querySelector('#hud-world')
     this.eraLabel = document.querySelector('#hud-era')
     this.developmentLabel = document.querySelector('#hud-development')
     this.techLabel = document.querySelector('#hud-tech')
@@ -458,6 +466,15 @@ export class MainScene extends Phaser.Scene {
     if (this.regionLabel) {
       this.regionLabel.textContent = regionName(this.world.activeId)
     }
+    if (this.countryLabel) {
+      this.countryLabel.textContent = countryName(REGIONS[this.world.activeId].country)
+    }
+    if (this.areaLabel) {
+      this.areaLabel.textContent = areaName(REGIONS[this.world.activeId].area)
+    }
+    if (this.industryLabel) {
+      this.industryLabel.textContent = REGIONS[this.world.activeId].industry
+    }
     if (this.climateLabel) {
       this.climateLabel.textContent = REGIONS[this.world.activeId].climate
     }
@@ -466,11 +483,15 @@ export class MainScene extends Phaser.Scene {
         this.world.activeId,
         new Map(
           this.world.regions
-            .filter((region) => region.unlocked)
-            .map((region) => [region.id, region.map]),
+            .filter((region) => region.unlocked && region.map)
+            .map((region) => [region.id, region.map!]),
         ),
         new Set(this.world.regions.filter((region) => region.unlocked).map((region) => region.id)),
       )
+    }
+    if (this.worldLabel) {
+      const census = this.world.census()
+      this.worldLabel.textContent = `${census.unlocked}/${census.total}都市 ${census.population}人`
     }
     if (this.developmentLabel) {
       this.developmentLabel.textContent = `${cityDevelopment(this.worldMap, this.residentSim.residents)}`
@@ -497,6 +518,9 @@ export class MainScene extends Phaser.Scene {
       }
       if (id === 'railways') {
         showToast('駅と線路が建てられるようになった')
+      }
+      if (id === 'aviation') {
+        showToast('空港が建てられるようになった')
       }
     }
     this.flushWorldNews()

@@ -17,6 +17,7 @@ export const BuildTool = {
   Station: 'station',
   Rail: 'rail',
   Port: 'port',
+  Airport: 'airport',
 } as const
 
 export type BuildTool = (typeof BuildTool)[keyof typeof BuildTool]
@@ -120,6 +121,12 @@ export const BUILDINGS: Record<BuildingId, BuildingDef> = {
     name: '港',
     tileType: TileType.Port,
     cost: 200,
+  },
+  airport: {
+    id: 'airport',
+    name: '空港',
+    tileType: TileType.Airport,
+    cost: 320,
   },
 }
 

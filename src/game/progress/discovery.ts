@@ -58,6 +58,11 @@ export function tickTechDiscovery(
       }
       if (job === TileType.Port) {
         add(TechId.Logistics, gameHours * 1.2)
+        add(TechId.Aviation, gameHours * 0.35)
+      }
+      if (job === TileType.Airport) {
+        add(TechId.Aviation, gameHours * 1.4)
+        add(TechId.Logistics, gameHours * 0.4)
       }
     }
 

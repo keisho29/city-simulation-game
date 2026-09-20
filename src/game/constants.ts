@@ -38,6 +38,7 @@ export const INITIAL_RESIDENT_COUNT = 20
 export const NEW_REGION_RESIDENT_COUNT = 6
 export const MIGRATION_INTERVAL_HOURS = 8
 export const INTER_TRADE_PER_HOUR = 1.6
+export const INACTIVE_TICK_BATCH = 3
 export const INITIAL_FUNDS = 1000
 /** 開発用。完了したら false にして通常の資金消費に戻す。 */
 export const DEV_FREEZE_FUNDS = true
@@ -54,6 +55,8 @@ export const TRANSIT_FARE = 2
 export const RAIL_UPKEEP_PER_TILE_HOUR = 0.06
 export const STATION_UPKEEP_PER_HOUR = 0.5
 export const PORT_UPKEEP_PER_HOUR = 0.45
+export const AIRPORT_UPKEEP_PER_HOUR = 0.7
+export const WAGE_AIRPORT_PER_HOUR = 5
 export const FREIGHT_PER_HOUR = 2
 export const FREIGHT_FARE_PER_UNIT = 0.3
 export const HUB_CATCH_RADIUS = 2
@@ -155,5 +158,6 @@ export const TECH_COST_LOGISTICS = 12
 export const TECH_COST_LITERACY = 18
 export const TECH_COST_INDUSTRY = 16
 export const TECH_COST_RAILWAYS = 18
+export const TECH_COST_AVIATION = 20
 export const FARMING_HARVEST_BONUS = 1.15
 
