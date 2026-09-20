@@ -76,6 +76,28 @@ export class WorldMap {
     return true
   }
 
+  canClear(x: number, y: number): boolean {
+    const type = this.getTile(x, y)?.type
+    return type !== undefined && type !== TileType.Vacant
+  }
+
+  clear(x: number, y: number): boolean {
+    if (!this.canClear(x, y)) {
+      return false
+    }
+
+    this.setTileType(x, y, TileType.Vacant)
+    return true
+  }
+
+  forEachTile(callback: (x: number, y: number, tile: Tile) => void): void {
+    for (let y = 0; y < this.height; y += 1) {
+      for (let x = 0; x < this.width; x += 1) {
+        callback(x, y, this.tiles[this.index(x, y)])
+      }
+    }
+  }
+
   private index(x: number, y: number): number {
     return y * this.width + x
   }

@@ -1,12 +1,21 @@
 import Phaser from 'phaser'
-import { BUILDINGS, BuildTool } from '../buildings/catalog.ts'
-import { drawWoodenHouse } from '../buildings/drawWoodenHouse.ts'
+import {
+  BUILDINGS,
+  BuildTool,
+  isBuildingTool,
+  isEditTool,
+  PaintMode,
+} from '../buildings/catalog.ts'
+import { drawBuilding } from '../buildings/drawBuilding.ts'
 import {
   MAX_CAMERA_ZOOM,
   MIN_CAMERA_ZOOM,
 } from '../constants.ts'
+import { TileType } from '../map/tile.ts'
 import { WorldMap } from '../map/WorldMap.ts'
+import { GameTime } from '../time/gameTime.ts'
 import { bindBuildMenu } from '../ui/buildMenu.ts'
+import { bindSpeedMenu } from '../ui/speedMenu.ts'
 
 const VACANT_LIGHT = 0x7ea34f
 const VACANT_DARK = 0x6d9144
@@ -21,7 +30,10 @@ export class MainScene extends Phaser.Scene {
   private buildingGraphics: Phaser.GameObjects.Graphics | undefined
   private hoverGraphics: Phaser.GameObjects.Graphics | undefined
   private selectedTool: BuildTool = BuildTool.None
+  private paintMode: PaintMode = PaintMode.Click
   private hoverTile: { x: number; y: number } | undefined
+  private gameTime = new GameTime()
+  private dateLabel: HTMLElement | null = null
 
   constructor() {
     super('MainScene')
@@ -34,20 +46,42 @@ export class MainScene extends Phaser.Scene {
     this.setupCamera()
     this.setupCameraControls()
     this.setupBuildingInput()
-    bindBuildMenu((tool) => this.setTool(tool))
+    bindBuildMenu({
+      onToolChange: (tool) => this.setTool(tool),
+      onPaintModeChange: (mode) => this.setPaintMode(mode),
+    })
+    this.dateLabel = document.querySelector('#hud-date')
+    this.renderDate()
+    bindSpeedMenu((speed) => this.gameTime.setSpeed(speed))
   }
 
   update(_time: number, delta: number): void {
     this.camControl?.update(delta)
+    if (this.gameTime.update(delta)) {
+      this.renderDate()
+    }
+  }
+
+  private renderDate(): void {
+    if (this.dateLabel) {
+      this.dateLabel.textContent = this.gameTime.formatDate()
+    }
   }
 
   private setTool(tool: BuildTool): void {
     this.selectedTool = tool
-    this.input.setDefaultCursor(tool === BuildTool.House ? 'crosshair' : 'default')
+    this.input.setDefaultCursor(isEditTool(tool) ? 'crosshair' : 'default')
     if (tool === BuildTool.None) {
       this.hoverTile = undefined
       this.hoverGraphics?.clear()
+      return
     }
+
+    this.redrawHover()
+  }
+
+  private setPaintMode(mode: PaintMode): void {
+    this.paintMode = mode
   }
 
   private drawLand(): void {
@@ -157,6 +191,15 @@ export class MainScene extends Phaser.Scene {
         }
 
         this.updateHover(pointer)
+
+        if (
+          this.paintMode === PaintMode.Drag &&
+          pointer.leftButtonDown() &&
+          isEditTool(this.selectedTool) &&
+          this.hoverTile
+        ) {
+          this.applyTool(this.hoverTile.x, this.hoverTile.y)
+        }
       },
     )
 
@@ -191,7 +234,7 @@ export class MainScene extends Phaser.Scene {
     this.input.on(
       Phaser.Input.Events.POINTER_DOWN,
       (pointer: Phaser.Input.Pointer) => {
-        if (this.selectedTool !== BuildTool.House || !pointer.leftButtonDown()) {
+        if (!isEditTool(this.selectedTool) || !pointer.leftButtonDown()) {
           return
         }
 
@@ -200,13 +243,13 @@ export class MainScene extends Phaser.Scene {
           return
         }
 
-        this.placeHouse(tile.x, tile.y)
+        this.applyTool(tile.x, tile.y)
       },
     )
   }
 
   private updateHover(pointer: Phaser.Input.Pointer): void {
-    if (this.selectedTool !== BuildTool.House || !this.hoverGraphics) {
+    if (!isEditTool(this.selectedTool) || !this.hoverGraphics) {
       return
     }
 
@@ -221,7 +264,7 @@ export class MainScene extends Phaser.Scene {
 
   private redrawHover(): void {
     const graphics = this.hoverGraphics
-    if (!graphics) {
+    if (!graphics || !isEditTool(this.selectedTool)) {
       return
     }
 
@@ -232,10 +275,21 @@ export class MainScene extends Phaser.Scene {
 
     const { x, y } = this.hoverTile
     const size = this.worldMap.tileSize
-    const canPlace = this.worldMap.canPlace(x, y)
 
-    if (canPlace) {
-      drawWoodenHouse(graphics, x, y, size, 0.55)
+    if (this.selectedTool === BuildTool.Erase) {
+      const canClear = this.worldMap.canClear(x, y)
+      graphics.lineStyle(2, canClear ? HOVER_INVALID : HOVER_VALID, 0.95)
+      if (canClear) {
+        graphics.fillStyle(HOVER_INVALID, 0.28)
+        graphics.fillRect(x * size + 1, y * size + 1, size - 2, size - 2)
+      }
+      graphics.strokeRect(x * size + 1, y * size + 1, size - 2, size - 2)
+      return
+    }
+
+    const canPlace = this.worldMap.canPlace(x, y)
+    if (canPlace && isBuildingTool(this.selectedTool)) {
+      drawBuilding(graphics, x, y, size, BUILDINGS[this.selectedTool].tileType, 0.55)
       graphics.lineStyle(2, HOVER_VALID, 0.9)
     } else {
       graphics.lineStyle(2, HOVER_INVALID, 0.95)
@@ -244,13 +298,52 @@ export class MainScene extends Phaser.Scene {
     graphics.strokeRect(x * size + 1, y * size + 1, size - 2, size - 2)
   }
 
-  private placeHouse(x: number, y: number): void {
-    if (!this.worldMap.place(x, y, BUILDINGS.house.tileType) || !this.buildingGraphics) {
+  private applyTool(x: number, y: number): void {
+    if (this.selectedTool === BuildTool.Erase) {
+      this.eraseTile(x, y)
       return
     }
 
-    drawWoodenHouse(this.buildingGraphics, x, y, this.worldMap.tileSize)
+    this.placeSelected(x, y)
+  }
+
+  private placeSelected(x: number, y: number): void {
+    if (!isBuildingTool(this.selectedTool) || !this.buildingGraphics) {
+      return
+    }
+
+    const building = BUILDINGS[this.selectedTool]
+    if (!this.worldMap.place(x, y, building.tileType)) {
+      return
+    }
+
+    drawBuilding(this.buildingGraphics, x, y, this.worldMap.tileSize, building.tileType)
     this.redrawHover()
+  }
+
+  private eraseTile(x: number, y: number): void {
+    if (!this.worldMap.clear(x, y)) {
+      return
+    }
+
+    this.redrawBuildings()
+    this.redrawHover()
+  }
+
+  private redrawBuildings(): void {
+    const graphics = this.buildingGraphics
+    if (!graphics) {
+      return
+    }
+
+    graphics.clear()
+    this.worldMap.forEachTile((tileX, tileY, tile) => {
+      if (tile.type === TileType.Vacant) {
+        return
+      }
+
+      drawBuilding(graphics, tileX, tileY, this.worldMap.tileSize, tile.type)
+    })
   }
 
   private tileFromPointer(pointer: Phaser.Input.Pointer): { x: number; y: number } | undefined {

@@ -10,18 +10,56 @@
     <div id="app"></div>
     <aside id="hud">
       <p class="hud-title">東京モデル地域</p>
+      <p class="hud-date" id="hud-date">1700年 1月 1日</p>
       <p class="hud-meta">50 × 50</p>
       <p class="hud-hint" id="hud-hint">矢印キー / 右ドラッグで移動</p>
       <p class="hud-hint">ホイールで拡大縮小</p>
     </aside>
+    <nav id="speed-menu" aria-label="ゲーム速度">
+      <button type="button" data-speed="0" aria-pressed="false">停止</button>
+      <button type="button" data-speed="1" class="is-active" aria-pressed="true">×1</button>
+      <button type="button" data-speed="2" aria-pressed="false">×2</button>
+      <button type="button" data-speed="5" aria-pressed="false">×5</button>
+    </nav>
     <nav id="build-menu" aria-label="建築メニュー">
-      <button type="button" data-tool="none" class="is-active" aria-pressed="true">
-        見る
-      </button>
-      <button type="button" data-tool="house" aria-pressed="false">
-        <span class="tool-swatch" aria-hidden="true"></span>
-        木造住宅
-      </button>
+      <div class="menu-group" role="toolbar" aria-label="建築">
+        <button type="button" data-tool="none" class="is-active" aria-pressed="true">
+          見る
+        </button>
+        <button type="button" data-tool="house" aria-pressed="false">
+          <span class="tool-swatch tool-swatch-house" aria-hidden="true"></span>
+          木造住宅
+        </button>
+        <button type="button" data-tool="road" aria-pressed="false">
+          <span class="tool-swatch tool-swatch-road" aria-hidden="true"></span>
+          道路
+        </button>
+        <button type="button" data-tool="farm" aria-pressed="false">
+          <span class="tool-swatch tool-swatch-farm" aria-hidden="true"></span>
+          農地
+        </button>
+        <button type="button" data-tool="shop" aria-pressed="false">
+          <span class="tool-swatch tool-swatch-shop" aria-hidden="true"></span>
+          商店
+        </button>
+        <button type="button" data-tool="workshop" aria-pressed="false">
+          <span class="tool-swatch tool-swatch-workshop" aria-hidden="true"></span>
+          工房
+        </button>
+      </div>
+      <div class="menu-group" role="toolbar" aria-label="編集">
+        <button type="button" data-tool="erase" aria-pressed="false">
+          削除
+        </button>
+      </div>
+      <div class="menu-group" role="radiogroup" aria-label="配置方法">
+        <button type="button" data-paint-mode="click" class="is-active" aria-pressed="true">
+          クリック
+        </button>
+        <button type="button" data-paint-mode="drag" aria-pressed="false">
+          ドラッグ
+        </button>
+      </div>
     </nav>
     <script type="module" src="/src/main.ts"></script>
   </body>
