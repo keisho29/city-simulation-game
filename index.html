@@ -9,415 +9,50 @@
       href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap"
       rel="stylesheet"
     />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>都市シミュレーション</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+    <title>ダッシュランナー</title>
   </head>
   <body data-shell="title">
     <div id="app"></div>
 
-    <header id="top-bar">
-      <div class="hud-date-bar">
-        <span class="hud-crest" aria-hidden="true"></span>
-        <p class="hud-date" id="hud-date">1700年 1月 1日（月）</p>
-        <p class="hud-clock" id="hud-clock">00:00</p>
-        <nav id="speed-menu" aria-label="ゲーム速度">
-          <button type="button" data-speed="0" aria-label="停止" aria-pressed="false" title="停止">
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <rect x="3" y="2" width="4" height="12" rx="1" />
-              <rect x="9" y="2" width="4" height="12" rx="1" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            data-speed="1"
-            class="is-active"
-            aria-label="×1"
-            aria-pressed="true"
-            title="×1"
-          >
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M4 2.5v11l9-5.5-9-5.5Z" />
-            </svg>
-          </button>
-          <button type="button" data-speed="2" aria-label="×2" aria-pressed="false" title="×2">
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M2 3v10l6-5-6-5Zm7 0v10l6-5-6-5Z" />
-            </svg>
-          </button>
-          <button type="button" data-speed="5" aria-label="×5" aria-pressed="false" title="×5">
-            <svg viewBox="0 0 18 16" aria-hidden="true">
-              <path d="M1 3v10l5.5-5L1 3Zm6 0v10l5.5-5L7 3Zm6 0v10l5.5-5L13 3Z" />
-            </svg>
-          </button>
-          <button type="button" data-speed="20" aria-label="×20" aria-pressed="false" title="×20">
-            <span>20</span>
-          </button>
-        </nav>
-      </div>
-      <div class="hud-funds-bar">
-        <p class="stat-value"><span id="hud-funds">9,000</span><span class="stat-unit">両</span></p>
-      </div>
+    <header id="play-hud" hidden>
+      <p id="hud-score">0m</p>
+      <p id="hud-best">最高 0m</p>
     </header>
 
-    <nav id="build-menu" aria-label="建築メニュー">
-      <div class="menu-group" role="toolbar" aria-label="建築">
-        <button type="button" data-tool="none" class="is-active" aria-pressed="true">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 4l14 7.2-6.2 1.6L11.2 20 5 4Z" />
-          </svg>
-          見る
-        </button>
-        <button type="button" data-tool="road" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M9 3h6l3 18H6L9 3Z" />
-            <path d="M12 6v3M12 12v3M12 18v2" />
-          </svg>
-          道路
-        </button>
-        <button type="button" data-tool="rail" aria-pressed="false" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 8h16M4 16h16" />
-            <path d="M7 6v12M12 6v12M17 6v12" />
-          </svg>
-          線路
-        </button>
-        <button type="button" data-tool="house" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 11.5 12 5l8 6.5V20H4v-8.5Z" />
-            <path d="M10 20v-6h4v6" />
-          </svg>
-          住宅
-        </button>
-        <button type="button" data-tool="shop" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 10h14v10H5V10Z" />
-            <path d="M4 7h16l-1.2 3H5.2L4 7Z" />
-            <path d="M10 20v-5h4v5" />
-          </svg>
-          商店
-        </button>
-        <button type="button" data-tool="workshop" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 20V9l4-4h8l4 4v11H4Z" />
-            <path d="M9 20v-5h6v5" />
-            <path d="M8 9h8" />
-          </svg>
-          工房
-        </button>
-        <button type="button" data-tool="farm" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 4c2 3 2 6 0 8-2-2-2-5 0-8Z" />
-            <path d="M7 8c2.2 2.4 2.4 5.2.6 7.2C5.8 13.4 5.4 10.6 7 8Z" />
-            <path d="M17 8c1.6 2.6 1.2 5.4-0.4 7.2C14.6 13.2 14.8 10.4 17 8Z" />
-            <path d="M12 12v8" />
-          </svg>
-          農地
-        </button>
-        <button type="button" data-tool="market" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 20V10h16v10H4Z" />
-            <path d="M5 6h14l1 4H4l1-4Z" />
-            <path d="M8 14h3M13 14h3" />
-          </svg>
-          市場
-        </button>
-        <button type="button" data-tool="well" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M7 10h10" />
-            <path d="M8 10v4M16 10v4" />
-            <path d="M6 6h12v3H6V6Z" />
-            <circle cx="12" cy="17" r="4" />
-          </svg>
-          井戸
-        </button>
-        <button type="button" data-tool="warehouse" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 20V9l8-5 8 5v11H4Z" />
-            <path d="M10 20v-6h4v6" />
-          </svg>
-          倉庫
-        </button>
-        <button type="button" data-tool="port" aria-pressed="false" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 16h16" />
-            <path d="M6 16V10l6-4 6 4v6" />
-            <path d="M4 19h16" />
-          </svg>
-          港
-        </button>
-        <button type="button" data-tool="clinic" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 20V10l8-6 8 6v10H4Z" />
-            <path d="M12 12v6M9 15h6" />
-          </svg>
-          診療
-        </button>
-        <button type="button" data-tool="school" aria-pressed="false" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M4 20V10l8-6 8 6v10H4Z" />
-            <path d="M8 14h8M12 10v8" />
-          </svg>
-          寺子屋
-        </button>
-        <button type="button" data-tool="factory" aria-pressed="false" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 20V11l6 3V11l6 3V8l6 4v8H3Z" />
-            <path d="M18 8V4" />
-          </svg>
-          工場
-        </button>
-        <button type="button" data-tool="station" aria-pressed="false" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 20V9l7-5 7 5v11H5Z" />
-            <path d="M9 20v-6h6v6" />
-            <path d="M4 20h16" />
-          </svg>
-          駅
-        </button>
-        <button type="button" data-tool="airport" aria-pressed="false" hidden>
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M3 17h18" />
-            <path d="M5 17V11l7-4 7 4v6" />
-            <path d="M12 7V4" />
-          </svg>
-          空港
-        </button>
-      </div>
-      <div class="menu-group" role="toolbar" aria-label="編集">
-        <button type="button" data-tool="erase" aria-pressed="false">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 7h14M9 7V5h6v2M8 7l1 13h6l1-13" />
-          </svg>
-          撤去
-        </button>
-      </div>
-      <div class="menu-group" role="radiogroup" aria-label="配置方法">
-        <button type="button" data-paint-mode="click" class="is-active" aria-pressed="true">
-          クリック
-        </button>
-        <button type="button" data-paint-mode="drag" aria-pressed="false">ドラッグ</button>
-      </div>
-    </nav>
-
-    <aside id="side-panel">
-      <section class="panel-card">
-        <h2>都市の統計</h2>
-        <dl class="stat-list">
-          <div>
-            <dt>人口</dt>
-            <dd id="hud-population">20</dd>
-          </div>
-          <div>
-            <dt>満足度</dt>
-            <dd id="hud-happiness">25%</dd>
-          </div>
-          <div>
-            <dt>入居</dt>
-            <dd id="hud-housed">0/20</dd>
-          </div>
-          <div>
-            <dt>雇用</dt>
-            <dd id="hud-employment">0/20</dd>
-          </div>
-          <div>
-            <dt>マップ</dt>
-            <dd>50 × 50</dd>
-          </div>
-          <div>
-            <dt>地域</dt>
-            <dd id="hud-region">江戸</dd>
-          </div>
-          <div>
-            <dt>国</dt>
-            <dd id="hud-country">日本</dd>
-          </div>
-          <div>
-            <dt>地方</dt>
-            <dd id="hud-area">関東</dd>
-          </div>
-          <div>
-            <dt>適性</dt>
-            <dd id="hud-industry">商業</dd>
-          </div>
-          <div>
-            <dt>気候</dt>
-            <dd id="hud-climate">温暖</dd>
-          </div>
-          <div>
-            <dt>地価</dt>
-            <dd id="hud-land-value">8</dd>
-          </div>
-          <div>
-            <dt>時代</dt>
-            <dd id="hud-era">1700年代</dd>
-          </div>
-          <div>
-            <dt>盛衰</dt>
-            <dd id="hud-fortune">安定 55</dd>
-          </div>
-          <div>
-            <dt>発展</dt>
-            <dd id="hud-development">0</dd>
-          </div>
-          <div>
-            <dt>技術</dt>
-            <dd id="hud-tech">なし</dd>
-          </div>
-          <div>
-            <dt>要望</dt>
-            <dd id="hud-demands">なし</dd>
-          </div>
-          <div>
-            <dt>食料</dt>
-            <dd id="hud-food">0</dd>
-          </div>
-          <div>
-            <dt>木材</dt>
-            <dd id="hud-wood">0</dd>
-          </div>
-          <div>
-            <dt>製品</dt>
-            <dd id="hud-goods">0</dd>
-          </div>
-          <div>
-            <dt>出来事</dt>
-            <dd id="hud-event">なし</dd>
-          </div>
-          <div>
-            <dt>交通</dt>
-            <dd id="hud-transit">徒歩</dd>
-          </div>
-          <div id="hud-funds-note" hidden>
-            <dt>資金</dt>
-            <dd>開発用・固定</dd>
-          </div>
-        </dl>
-      </section>
-      <section class="panel-card" id="resident-panel">
-        <div class="panel-heading">
-          <h2>住民</h2>
-          <button type="button" id="resident-close" hidden>閉じる</button>
-        </div>
-        <p class="hud-hint" id="resident-empty">見るを選んで、住民や建物をクリックしてください。</p>
-        <dl class="stat-list" id="resident-detail" hidden>
-          <div>
-            <dt>名前</dt>
-            <dd id="resident-name"></dd>
-          </div>
-          <div>
-            <dt>年齢</dt>
-            <dd id="resident-age"></dd>
-          </div>
-          <div>
-            <dt>状態</dt>
-            <dd id="resident-state"></dd>
-          </div>
-          <div>
-            <dt>自宅</dt>
-            <dd id="resident-home"></dd>
-          </div>
-          <div>
-            <dt>仕事</dt>
-            <dd id="resident-job"></dd>
-          </div>
-          <div>
-            <dt>勤務先</dt>
-            <dd id="resident-workplace"></dd>
-          </div>
-          <div>
-            <dt>空腹</dt>
-            <dd id="resident-hunger"></dd>
-          </div>
-          <div>
-            <dt>所持金</dt>
-            <dd id="resident-money"></dd>
-          </div>
-          <div>
-            <dt>幸福度</dt>
-            <dd id="resident-happiness"></dd>
-          </div>
-        </dl>
-        <dl class="stat-list" id="tile-detail" hidden>
-          <div>
-            <dt>建物</dt>
-            <dd id="tile-name"></dd>
-          </div>
-          <div>
-            <dt>レベル</dt>
-            <dd id="tile-level"></dd>
-          </div>
-          <div>
-            <dt>経験</dt>
-            <dd id="tile-xp"></dd>
-          </div>
-          <div>
-            <dt>地価</dt>
-            <dd id="tile-value"></dd>
-          </div>
-          <div>
-            <dt>収容</dt>
-            <dd id="tile-capacity"></dd>
-          </div>
-          <div>
-            <dt>在庫</dt>
-            <dd id="tile-stock"></dd>
-          </div>
-          <div>
-            <dt>交通</dt>
-            <dd id="tile-transit"></dd>
-          </div>
-        </dl>
-      </section>
-      <section class="panel-card panel-help">
-        <p class="hud-hint" id="hud-hint">矢印キー / 右ドラッグで移動</p>
-        <p class="hud-hint">ホイールで拡大縮小</p>
-        <p class="hud-hint">進捗は自動保存されます</p>
-        <button type="button" id="advance-era" hidden>
-          1800年代へ進む
-        </button>
-        <button type="button" id="save-game" title="いまの街を保存する">
-          保存
-        </button>
-        <button type="button" id="open-howto">
-          遊び方
-        </button>
-        <button type="button" id="title-back" title="タイトルへ戻る。街は保存されます">
-          タイトルへ
-        </button>
-        <button type="button" id="clear-game" title="セーブを消して最初からやり直す">
-          最初から
-        </button>
-      </section>
-    </aside>
-
-    <div id="shell-overlay">
-      <section class="panel-card title-card" id="title-card">
-        <p class="title-kicker">1700年から、未来まで</p>
-        <h1>都市シミュレーション</h1>
-        <p class="title-lead">街をつくり、住民がその街で暮らします。</p>
-        <button type="button" id="title-start">はじめる</button>
-        <button type="button" id="title-continue">続きから</button>
-        <p class="title-continue-note" id="title-continue-note">セーブがありません</p>
-        <button type="button" id="title-howto">遊び方</button>
-      </section>
-      <section class="panel-card howto-card" id="howto-card" hidden>
-        <div class="panel-heading">
-          <h2>遊び方</h2>
-        </div>
-        <ol class="howto-list">
-          <li>上の道具で住宅・農地・道などを置きます。</li>
-          <li>住民は自分で住み、働き、買い物をします。</li>
-          <li>右側の要望を見て、足りないものを建てます。</li>
-          <li>技術が開くと駅・港・工場などが使えるようになります。</li>
-          <li>進捗は自動で保存されます。タイトルへ戻っても続きから遊べます。</li>
-        </ol>
-        <p class="hud-hint">矢印キーまたは右ドラッグで地図を動かし、ホイールで拡大縮小します。「見る」のときは住民や建物をクリックすると詳しい様子が見られます。</p>
-        <button type="button" id="howto-start" hidden>わかった、はじめる</button>
-        <button type="button" id="howto-close">もどる</button>
-      </section>
+    <div id="controls" hidden>
+      <button type="button" id="btn-jump">ジャンプ</button>
+      <button type="button" id="btn-slide">スライディング</button>
     </div>
 
-    <div id="toast-stack" aria-live="polite"></div>
+    <div id="shell-overlay">
+      <section class="panel-card" id="title-card">
+        <p class="title-kicker">自動で走る</p>
+        <h1>ダッシュランナー</h1>
+        <p class="title-lead">操作はジャンプとスライディングだけ。</p>
+        <button type="button" id="title-start">はじめる</button>
+        <button type="button" id="title-howto">遊び方</button>
+      </section>
+      <section class="panel-card" id="howto-card" hidden>
+        <h2>遊び方</h2>
+        <ol class="howto-list">
+          <li>キャラクターは自動で走り続けます。</li>
+          <li>低い障害はジャンプで飛び越えます。</li>
+          <li>高い障害はスライディングでくぐります。</li>
+          <li>ぶつかるとその距離が記録されます。</li>
+        </ol>
+        <p class="hint">キーボードは ↑ / スペース でジャンプ、↓ / S でスライディングです。</p>
+        <button type="button" id="howto-close">もどる</button>
+      </section>
+      <section class="panel-card" id="over-card" hidden>
+        <p class="title-kicker">ぶつかった</p>
+        <h2>ゲームオーバー</h2>
+        <p id="over-score">0m</p>
+        <p id="over-best">最高 0m</p>
+        <button type="button" id="retry">もういちど</button>
+        <button type="button" id="over-title">タイトルへ</button>
+      </section>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

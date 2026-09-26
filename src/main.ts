@@ -1,12 +1,15 @@
 import Phaser from 'phaser'
 import './style.css'
-import { MainScene } from './game/scenes/MainScene.ts'
+import { RunnerScene } from './game/RunnerScene.ts'
 
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'app',
-  backgroundColor: '#b6e66a',
-  scene: MainScene,
+  backgroundColor: '#87b7e6',
+  scene: RunnerScene,
+  input: {
+    keyboard: true,
+  },
   render: {
     antialias: false,
     roundPixels: true,
