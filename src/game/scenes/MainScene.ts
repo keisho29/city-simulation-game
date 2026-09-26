@@ -76,11 +76,9 @@ import { bindClearGame } from '../ui/clearGame.ts'
 import { bindResidentPanel } from '../ui/residentPanel.ts'
 import { bindSpeedMenu, type SpeedMenu } from '../ui/speedMenu.ts'
 import { bindTitleScreen, hasSeenGuide, type TitleScreen } from '../ui/titleScreen.ts'
-import { bindWorldMap, type WorldMapUi } from '../ui/worldMap.ts'
 import { showToast } from '../ui/toast.ts'
-import { REGIONS, areaName, countryName, linkLabel, regionGrassTint, regionName, type RegionId } from '../world/regions.ts'
+import { REGIONS, areaName, countryName, regionGrassTint, regionName } from '../world/regions.ts'
 import { WorldSession } from '../world/WorldSession.ts'
-import { worldEventName } from '../world/events.ts'
 import { fortuneLabel } from '../world/fortune.ts'
 
 const MAP_EDGE = 0x5aaa32
@@ -122,11 +120,8 @@ export class MainScene extends Phaser.Scene {
   private areaLabel: HTMLElement | null = null
   private industryLabel: HTMLElement | null = null
   private climateLabel: HTMLElement | null = null
-  private linksLabel: HTMLElement | null = null
-  private worldLabel: HTMLElement | null = null
   private eraLabel: HTMLElement | null = null
   private fortuneLabel: HTMLElement | null = null
-  private worldEventLabel: HTMLElement | null = null
   private developmentLabel: HTMLElement | null = null
   private techLabel: HTMLElement | null = null
   private advanceEraButton: HTMLButtonElement | null = null
@@ -149,7 +144,6 @@ export class MainScene extends Phaser.Scene {
   private residentPanel = bindResidentPanel()
   private buildMenu: BuildMenu | undefined
   private speedMenu: SpeedMenu | undefined
-  private worldMapUi: WorldMapUi | undefined
   private titleScreen: TitleScreen | undefined
   private sessionActive = false
   private pendingSpeed: GameSpeed = GameSpeed.X1
@@ -199,11 +193,8 @@ export class MainScene extends Phaser.Scene {
     this.areaLabel = document.querySelector('#hud-area')
     this.industryLabel = document.querySelector('#hud-industry')
     this.climateLabel = document.querySelector('#hud-climate')
-    this.linksLabel = document.querySelector('#hud-links')
-    this.worldLabel = document.querySelector('#hud-world')
     this.eraLabel = document.querySelector('#hud-era')
     this.fortuneLabel = document.querySelector('#hud-fortune')
-    this.worldEventLabel = document.querySelector('#hud-world-event')
     this.developmentLabel = document.querySelector('#hud-development')
     this.techLabel = document.querySelector('#hud-tech')
     this.advanceEraButton = document.querySelector('#advance-era')
@@ -217,7 +208,6 @@ export class MainScene extends Phaser.Scene {
       this.persistGame()
     }, this.gameTime.speed)
     bindClearGame(() => this.requestReset())
-    this.worldMapUi = bindWorldMap((id) => this.switchRegion(id))
     this.titleScreen = bindTitleScreen({
       onStart: () => this.requestNewGame(),
       onContinue: () => this.continueGame(),
@@ -363,7 +353,6 @@ export class MainScene extends Phaser.Scene {
     this.persistGame()
     this.pendingSpeed = this.gameTime.speed === GameSpeed.Pause ? GameSpeed.X1 : this.gameTime.speed
     this.sessionActive = false
-    this.worldMapUi?.setOpen(false)
     this.pauseForShell()
     this.titleScreen?.refresh()
     this.titleScreen?.showTitle()
@@ -657,9 +646,6 @@ export class MainScene extends Phaser.Scene {
     if (this.fortuneLabel) {
       this.fortuneLabel.textContent = fortuneLabel(this.residentSim.fortune)
     }
-    if (this.worldEventLabel) {
-      this.worldEventLabel.textContent = worldEventName(this.world.worldEvent)
-    }
     if (this.regionLabel) {
       this.regionLabel.textContent = regionName(this.world.activeId)
     }
@@ -675,21 +661,6 @@ export class MainScene extends Phaser.Scene {
     if (this.climateLabel) {
       this.climateLabel.textContent = REGIONS[this.world.activeId].climate
     }
-    if (this.linksLabel) {
-      this.linksLabel.textContent = linkLabel(
-        this.world.activeId,
-        new Map(
-          this.world.regions
-            .filter((region) => region.unlocked && region.map)
-            .map((region) => [region.id, region.map!]),
-        ),
-        new Set(this.world.regions.filter((region) => region.unlocked).map((region) => region.id)),
-      )
-    }
-    if (this.worldLabel) {
-      const census = this.world.census()
-      this.worldLabel.textContent = `${census.unlocked}/${census.total}都市 ${census.population}人`
-    }
     if (this.developmentLabel) {
       this.developmentLabel.textContent = `${cityDevelopment(this.worldMap, this.residentSim.residents)}`
     }
@@ -697,7 +668,6 @@ export class MainScene extends Phaser.Scene {
       this.techLabel.textContent = discoveredTechLabel(this.world.progress)
     }
     this.syncProgressUi()
-    this.worldMapUi?.render(this.world)
   }
 
   private flushDiscoveries(): void {
@@ -742,13 +712,7 @@ export class MainScene extends Phaser.Scene {
   }
 
   private flushWorldNews(): void {
-    for (const id of this.world.lastUnlocks) {
-      showToast(`${regionName(id)}が開かれた`)
-    }
     this.world.lastUnlocks = []
-    for (const note of this.world.lastMoves) {
-      showToast(note)
-    }
     this.world.lastMoves = []
     for (const note of this.world.lastNews) {
       showToast(note)
@@ -813,21 +777,6 @@ export class MainScene extends Phaser.Scene {
     document.body.dataset.era = era
     this.strokeMapEdge(eraMapEdge(era))
     this.worldMap.forEachTile((x, y) => this.paintTile(x, y))
-  }
-
-  private switchRegion(id: RegionId): void {
-    if (!this.world.switchTo(id)) {
-      return
-    }
-    this.bindActiveRegion()
-    this.clearResidentInspect()
-    this.createTileSprites()
-    this.createResidentMarkers()
-    this.fitMapInView()
-    this.applyEraLook()
-    this.renderCityHud()
-    this.persistGame()
-    showToast(`${regionName(id)}に移った`)
   }
 
   private setTool(tool: BuildTool): void {
@@ -1111,7 +1060,6 @@ export class MainScene extends Phaser.Scene {
     }
     this.residentSim?.refreshHousing()
     this.residentSim?.refreshJobs()
-    this.world.lastUnlocks = this.world.tryUnlock()
     this.flushWorldNews()
     this.renderCityHud()
     this.redrawHover()

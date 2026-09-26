@@ -29,15 +29,16 @@ describe('kanto regions', () => {
     expect(REGIONS[RegionId.Mito].wood).toBeGreaterThan(1)
   })
 
-  it('unlocks Yokohama after logistics and six housed people', () => {
+  it('stays on the Edo field even after logistics and housing grow', () => {
     const world = new WorldSession()
     world.progress.discovered.push(TechId.Logistics)
     expect(placeMany(world.active.map, TileType.House, 6)).toBe(true)
     world.active.sim.refreshHousing()
     expect(world.active.sim.housedCount() >= 6).toBe(true)
-    expect(world.tryUnlock()).toContain(RegionId.Yokohama)
-    expect(world.region(RegionId.Yokohama)?.unlocked).toBe(true)
-    expect(world.switchTo(RegionId.Yokohama)).toBe(true)
+    expect(world.tryUnlock()).toEqual([])
+    expect(world.region(RegionId.Yokohama)?.unlocked).toBe(false)
+    expect(world.switchTo(RegionId.Yokohama)).toBe(false)
+    expect(world.activeId).toBe(RegionId.Edo)
   })
 
   it('connects Edo and Yokohama by ship after both have ports', () => {
@@ -110,11 +111,12 @@ describe('japan and world regions', () => {
     expect(world.census().countries).toBe(1)
   })
 
-  it('unlocks Sendai after Edo grows along the north road', () => {
+  it('does not open Sendai after Edo grows', () => {
     const world = new WorldSession()
     expect(placeMany(world.active.map, TileType.House, 8)).toBe(true)
     world.active.sim.refreshHousing()
-    expect(world.tryUnlock()).toContain(RegionId.Sendai)
+    expect(world.tryUnlock()).toEqual([])
+    expect(world.region(RegionId.Sendai)?.unlocked).toBe(false)
   })
 
   it('opens an air link once both cities have airports', () => {
@@ -133,10 +135,11 @@ describe('japan and world regions', () => {
 })
 
 describe('world session', () => {
-  it('starts in Edo and can switch after unlock', () => {
+  it('starts in Edo and stays on the first field', () => {
     const world = new WorldSession()
     expect(world.activeId).toBe(RegionId.Edo)
     expect(world.active.unlocked).toBe(true)
+    expect(world.census().unlocked).toBe(1)
     expect(world.region(RegionId.Yokohama)?.unlocked).toBe(false)
     expect(world.switchTo(RegionId.Yokohama)).toBe(false)
   })
@@ -214,7 +217,7 @@ describe('world session', () => {
     expect(moved.food).toBeGreaterThan(0)
   })
 
-  it('treats later eras as enough to open Meiji-gated overseas ports', () => {
+  it('does not open overseas ports from later eras', () => {
     const progress = createProgress({
       era: EraId.Industrial,
       discovered: [TechId.Trade, TechId.Logistics, TechId.Industry, TechId.Railways],
@@ -222,7 +225,8 @@ describe('world session', () => {
     const world = new WorldSession(progress)
     world.region(RegionId.Nagasaki)!.unlocked = true
     world.mapOf(RegionId.Nagasaki)
-    expect(world.tryUnlock()).toContain(RegionId.Naha)
+    expect(world.tryUnlock()).toEqual([])
+    expect(world.region(RegionId.Naha)?.unlocked).toBe(false)
   })
 
   it('records world history and keeps prosperity on a long tick', () => {
@@ -237,10 +241,12 @@ describe('world session', () => {
 })
 
 function unlockYokohama(world: WorldSession): WorldSession {
-  world.progress.discovered.push(TechId.Logistics)
-  placeMany(world.active.map, TileType.House, 6)
-  world.active.sim.refreshHousing()
-  world.tryUnlock()
+  const yokohama = world.region(RegionId.Yokohama)
+  if (yokohama) {
+    yokohama.unlocked = true
+    world.switchTo(RegionId.Yokohama)
+    world.switchTo(RegionId.Edo)
+  }
   return world
 }
 

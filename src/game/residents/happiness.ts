@@ -7,6 +7,7 @@ import {
   HAPPINESS_FESTIVAL,
   HAPPINESS_HAS_JOB,
   HAPPINESS_HOLIDAY_REST,
+  HAPPINESS_LEISURE,
   HAPPINESS_HUNGRY,
   HAPPINESS_LONG_COMMUTE,
   HAPPINESS_NO_HOME,
@@ -26,7 +27,7 @@ import {
 } from '../constants.ts'
 import { TileType } from '../map/tile.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
-import { ResidentState, type Resident } from './resident.ts'
+import { isLeisureState, ResidentState, type Resident } from './resident.ts'
 
 export type HappinessContext = {
   isHoliday?: boolean
@@ -87,9 +88,14 @@ export function residentHappiness(
     context.isHoliday &&
     (resident.state === ResidentState.Home ||
       resident.state === ResidentState.Shopping ||
-      resident.state === ResidentState.MovingToShop)
+      resident.state === ResidentState.MovingToShop ||
+      isLeisureState(resident.state))
   ) {
     happiness += HAPPINESS_HOLIDAY_REST
+  }
+
+  if (isLeisureState(resident.state)) {
+    happiness += HAPPINESS_LEISURE
   }
 
   if (context.festival) {

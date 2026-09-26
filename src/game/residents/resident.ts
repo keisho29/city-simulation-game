@@ -14,6 +14,11 @@ export const ResidentState = {
   MovingToPickup: 'MOVING_TO_PICKUP',
   Hauling: 'HAULING',
   Riding: 'RIDING',
+  Wandering: 'WANDERING',
+  Talking: 'TALKING',
+  Playing: 'PLAYING',
+  Exercising: 'EXERCISING',
+  Sporting: 'SPORTING',
 } as const
 
 export type ResidentState = (typeof ResidentState)[keyof typeof ResidentState]
@@ -33,6 +38,9 @@ export type Resident = {
   home: TileRef | undefined
   workplace: TileRef | undefined
   shopTarget: TileRef | undefined
+  strollTarget: TileRef | undefined
+  talkWith: string | undefined
+  activityHours: number | undefined
   haulKind: StockKind | undefined
   haulAmount: number | undefined
   haulPickup: TileRef | undefined
@@ -48,6 +56,22 @@ export type Resident = {
   state: ResidentState
   worldX: number
   worldY: number
+}
+
+export function isLeisureState(state: ResidentState): boolean {
+  return (
+    state === ResidentState.Wandering ||
+    state === ResidentState.Talking ||
+    state === ResidentState.Playing ||
+    state === ResidentState.Exercising ||
+    state === ResidentState.Sporting
+  )
+}
+
+export function clearLeisure(resident: Resident): void {
+  resident.strollTarget = undefined
+  resident.talkWith = undefined
+  resident.activityHours = undefined
 }
 
 export function clearRide(resident: Resident): void {
@@ -67,6 +91,9 @@ export function createResident(overrides: Partial<Resident> = {}): Resident {
     home: overrides.home,
     workplace: overrides.workplace,
     shopTarget: overrides.shopTarget,
+    strollTarget: overrides.strollTarget,
+    talkWith: overrides.talkWith,
+    activityHours: overrides.activityHours,
     haulKind: overrides.haulKind,
     haulAmount: overrides.haulAmount,
     haulPickup: overrides.haulPickup,

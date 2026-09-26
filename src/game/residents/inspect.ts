@@ -16,6 +16,11 @@ export const RESIDENT_STATE_LABELS: Record<ResidentState, string> = {
   [ResidentState.MovingToPickup]: '荷物を取りに行っている',
   [ResidentState.Hauling]: '荷物を運んでいる',
   [ResidentState.Riding]: '乗り物に乗っている',
+  [ResidentState.Wandering]: '街を歩いている',
+  [ResidentState.Talking]: '人と話している',
+  [ResidentState.Playing]: '遊んでいる',
+  [ResidentState.Exercising]: '運動している',
+  [ResidentState.Sporting]: 'スポーツしている',
 }
 
 export type ResidentDetailView = {
@@ -105,7 +110,8 @@ export function pickResidentOnTile(
       (resident.workplace?.x === tile.x && resident.workplace.y === tile.y) ||
       (resident.shopTarget?.x === tile.x && resident.shopTarget.y === tile.y) ||
       (resident.haulPickup?.x === tile.x && resident.haulPickup.y === tile.y) ||
-      (resident.haulDrop?.x === tile.x && resident.haulDrop.y === tile.y),
+      (resident.haulDrop?.x === tile.x && resident.haulDrop.y === tile.y) ||
+      (resident.strollTarget?.x === tile.x && resident.strollTarget.y === tile.y),
   )
 }
 

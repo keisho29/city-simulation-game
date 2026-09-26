@@ -109,10 +109,10 @@ export function preloadWorldArt(scene: Phaser.Scene): void {
   scene.load.image(SRC_MOUNTAIN, '/art/preview-pixel/tile-mountain.png')
   scene.load.image(SRC_BRIDGE, '/art/tile-bridge.png')
   scene.load.image(SRC_ROCK, '/art/preview-pixel/tile-rock.png')
-  scene.load.image(SRC_CHIBI_FRONT_MALE, '/art/chibi-front-male.png')
-  scene.load.image(SRC_CHIBI_FRONT_FEMALE, '/art/chibi-front-female.png')
-  scene.load.image(SRC_CHIBI_BACK_MALE, '/art/chibi-back-male.png')
-  scene.load.image(SRC_CHIBI_BACK_FEMALE, '/art/chibi-back-female.png')
+  scene.load.image(SRC_CHIBI_FRONT_MALE, '/art/preview-pixel/resident-front-male.png')
+  scene.load.image(SRC_CHIBI_FRONT_FEMALE, '/art/preview-pixel/resident-front-female.png')
+  scene.load.image(SRC_CHIBI_BACK_MALE, '/art/preview-pixel/resident-back-male.png')
+  scene.load.image(SRC_CHIBI_BACK_FEMALE, '/art/preview-pixel/resident-back-female.png')
 }
 
 export function createWorldArt(scene: Phaser.Scene): void {

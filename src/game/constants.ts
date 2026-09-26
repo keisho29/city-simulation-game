@@ -81,6 +81,15 @@ export const LONG_COMMUTE_DISTANCE = 15
 export const WORK_START_HOUR = 8
 /** この時刻（含む）から帰宅する。 */
 export const WORK_END_HOUR = 17
+/** この時刻（含む）から夜の休み。 */
+export const REST_START_HOUR = 21
+/** この時刻（含まない）まで夜の休み。 */
+export const REST_END_HOUR = 6
+export const LEISURE_STAY_HOURS = 0.35
+export const LEISURE_TALK_HOURS = 0.3
+export const LEISURE_HOME_STAY_HOURS = 0.55
+export const HAPPINESS_LEISURE = 3
+export const LEISURE_WALK_SPEED = 1.25
 
 export const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'] as const
 export const HOLIDAY_WEEKDAY = 0

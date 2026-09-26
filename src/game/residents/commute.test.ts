@@ -4,7 +4,7 @@ import { TileType } from '../map/tile.ts'
 import { WorldMap } from '../map/WorldMap.ts'
 import { applySchedule, isWorkHours } from './commute.ts'
 import { ResidentSim } from './ResidentSim.ts'
-import { createResident, ResidentState } from './resident.ts'
+import { createResident, isLeisureState, ResidentState } from './resident.ts'
 
 describe('isWorkHours', () => {
   it('is true from 8:00 until 17:00', () => {
@@ -36,14 +36,14 @@ describe('applySchedule', () => {
     expect(resident.state).toBe(ResidentState.Home)
   })
 
-  it('leaves work at 17:00', () => {
+  it('leaves work at 17:00 into town', () => {
     const resident = createResident({
       home: { x: 1, y: 1 },
       workplace: { x: 3, y: 1 },
       state: ResidentState.Working,
     })
     applySchedule(resident, 17)
-    expect(resident.state).toBe(ResidentState.MovingToHome)
+    expect(resident.state).toBe(ResidentState.Wandering)
   })
 
   it('keeps working during work hours', () => {
@@ -76,14 +76,14 @@ describe('applySchedule', () => {
     expect(resident.state).toBe(ResidentState.Home)
   })
 
-  it('sends an unemployed worker home', () => {
+  it('sends an unemployed worker into town', () => {
     const resident = createResident({
       home: { x: 1, y: 1 },
       workplace: undefined,
       state: ResidentState.Working,
     })
     applySchedule(resident, 12)
-    expect(resident.state).toBe(ResidentState.MovingToHome)
+    expect(resident.state).toBe(ResidentState.Wandering)
   })
 
   it('stays home on a holiday instead of going to work', () => {
@@ -96,13 +96,24 @@ describe('applySchedule', () => {
     expect(resident.state).toBe(ResidentState.Home)
   })
 
-  it('sends a worker home when a holiday begins', () => {
+  it('lets a worker leave the workplace when a holiday begins', () => {
     const resident = createResident({
       home: { x: 1, y: 1 },
       workplace: { x: 3, y: 1 },
       state: ResidentState.Working,
     })
     applySchedule(resident, 10, true)
+    expect(resident.state).toBe(ResidentState.Wandering)
+  })
+
+  it('sends a wanderer home at night', () => {
+    const resident = createResident({
+      home: { x: 1, y: 1 },
+      workplace: { x: 3, y: 1 },
+      state: ResidentState.Wandering,
+      strollTarget: { x: 2, y: 2 },
+    })
+    applySchedule(resident, 22)
     expect(resident.state).toBe(ResidentState.MovingToHome)
   })
 })
@@ -134,10 +145,13 @@ describe('commute walking', () => {
     expect(resident.worldY).toBe(work.y)
 
     sim.update(16, GameSpeed.X1, 17)
+    expect(isLeisureState(resident.state) || resident.state === ResidentState.MovingToHome).toBe(true)
+
+    sim.update(16, GameSpeed.X1, 21)
     expect(resident.state).toBe(ResidentState.MovingToHome)
 
     for (let i = 0; i < 200; i += 1) {
-      sim.update(250, GameSpeed.X1, 17)
+      sim.update(250, GameSpeed.X1, 21)
     }
 
     expect(resident.state).toBe(ResidentState.Home)

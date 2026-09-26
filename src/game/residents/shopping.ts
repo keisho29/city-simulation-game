@@ -4,7 +4,7 @@ import type { Treasury } from '../economy/treasury.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import { isWorkHours } from './commute.ts'
 import { buyFood, canAffordFood } from './needs.ts'
-import { ResidentState, type Resident } from './resident.ts'
+import { isLeisureState, ResidentState, type Resident } from './resident.ts'
 
 export function maybeStartShopping(
   resident: Resident,
@@ -22,12 +22,13 @@ export function maybeStartShopping(
     resident.state === ResidentState.MovingToHome ||
     resident.state === ResidentState.MovingToPickup ||
     resident.state === ResidentState.Hauling ||
-    resident.state === ResidentState.Riding
+    resident.state === ResidentState.Riding ||
+    resident.state === ResidentState.Talking
   ) {
     return
   }
 
-  if (resident.state !== ResidentState.Home || !resident.home) {
+  if (resident.state !== ResidentState.Home && !isLeisureState(resident.state)) {
     return
   }
 
@@ -40,7 +41,12 @@ export function maybeStartShopping(
     return
   }
 
-  const shop = map.findNearestShop(resident.home, { minFood: 1 })
+  const origin = resident.home ?? map.worldToTile(resident.worldX, resident.worldY)
+  if (!origin) {
+    return
+  }
+
+  const shop = map.findNearestShop(origin, { minFood: 1 })
   if (!shop) {
     return
   }

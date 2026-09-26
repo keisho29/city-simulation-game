@@ -200,6 +200,9 @@ function parseResident(raw: unknown): Resident | undefined {
     home: parseTileRef(raw.home),
     workplace: parseTileRef(raw.workplace),
     shopTarget: parseTileRef(raw.shopTarget),
+    strollTarget: parseTileRef(raw.strollTarget),
+    talkWith: typeof raw.talkWith === 'string' ? raw.talkWith : undefined,
+    activityHours: isFiniteNumber(raw.activityHours) ? Math.max(0, raw.activityHours) : undefined,
     haulKind: STOCK_KINDS.has(raw.haulKind as string)
       ? (raw.haulKind as StockKindType)
       : undefined,

@@ -1,7 +1,6 @@
 import {
   INACTIVE_TICK_BATCH,
   MS_PER_DAY_AT_SPEED_1,
-  NEW_REGION_RESIDENT_COUNT,
   PROSPERITY_START,
   TECH_SPREAD_HOURS,
   type GameSpeed,
@@ -11,8 +10,7 @@ import type { Treasury } from '../economy/treasury.ts'
 import { WorldMap } from '../map/WorldMap.ts'
 import { createProgress, type ProgressState } from '../progress/progress.ts'
 import { isTechId, techName, TechId } from '../progress/tech.ts'
-import { residentAge, residentGender, residentName } from '../residents/names.ts'
-import { createResident, type Resident } from '../residents/resident.ts'
+import type { Resident } from '../residents/resident.ts'
 import { ResidentSim } from '../residents/ResidentSim.ts'
 import type { TransitStats } from '../transit/service.ts'
 import {
@@ -26,7 +24,6 @@ import {
 } from './events.ts'
 import { parseProsperity, tickProsperity } from './fortune.ts'
 import { parseHistory, pushHistory, type HistoryEntry } from './history.ts'
-import { tickMigration } from './migration.ts'
 import {
   CountryId,
   JAPAN_REGION_IDS,
@@ -37,10 +34,9 @@ import {
   isRegionId,
   linkedRegions,
   regionName,
-  regionUnlockView,
   type RegionId as RegionIdType,
 } from './regions.ts'
-import { extraSupplyFromLinks, tickInterRegionTrade, tradeHint, type TradeMoved } from './trade.ts'
+import { extraSupplyFromLinks, tradeHint, type TradeMoved } from './trade.ts'
 
 type TechSpread = {
   id: TechId
@@ -97,12 +93,11 @@ export class WorldSession {
   lastNews: string[] = []
   lastTrade: TradeMoved = { food: 0, wood: 0, goods: 0 }
   private spreads: TechSpread[] = []
-  private migrateHours = { hours: 0 }
   private inactiveCursor = 0
 
   constructor(progress?: ProgressState, saved?: WorldSave) {
     this.progress = progress ?? createProgress()
-    this.activeId = saved?.active && isRegionId(saved.active) ? saved.active : RegionId.Edo
+    this.activeId = RegionId.Edo
     this.worldEvent = parseWorldEvent(saved?.worldEvent)
     this.history = parseHistory(saved?.history)
     this.spreads = parseSpreads(saved?.spreads)
@@ -178,7 +173,9 @@ export class WorldSession {
       this.inactiveCursor = (this.inactiveCursor + batch) % inactive.length
     }
 
-    this.lastUnlocks = this.tryUnlock()
+    this.lastUnlocks = []
+    this.lastTrade = { food: 0, wood: 0, goods: 0 }
+    this.lastMoves = []
     if (speed === 0 || deltaMs <= 0) {
       return
     }
@@ -187,20 +184,6 @@ export class WorldSession {
     const year = clock?.year ?? 1700
     const month = clock?.month ?? 1
     this.tickWorldPulse(gameHours, year, month)
-    this.lastTrade = tickInterRegionTrade(this.mapTable(), this.unlockedSet(), gameHours, treasury)
-    this.lastMoves = tickMigration(
-      this.mapTable(),
-      this.peopleTable(),
-      this.unlockedSet(),
-      gameHours,
-      this.migrateHours,
-    )
-    if (this.lastMoves.length > 0) {
-      for (const region of this.regions) {
-        region.sim?.refreshHousing()
-        region.sim?.refreshJobs()
-      }
-    }
   }
 
   recordHistory(year: number, month: number, text: string): void {
@@ -208,21 +191,7 @@ export class WorldSession {
   }
 
   tryUnlock(): RegionIdType[] {
-    const maps = this.mapTable()
-    const people = this.peopleTable()
-    const gained: RegionIdType[] = []
-    for (const region of this.regions) {
-      if (region.unlocked) {
-        continue
-      }
-      const view = regionUnlockView(region.id, this.progress, maps, people)
-      if (!view.ready) {
-        continue
-      }
-      this.unlockRegion(region)
-      gained.push(region.id)
-    }
-    return gained
+    return []
   }
 
   takeDiscoveries(): TechId[] {
@@ -318,20 +287,8 @@ export class WorldSession {
     return region.map
   }
 
-  private unlockRegion(region: RegionRuntime): void {
-    const def = REGIONS[region.id]
-    const map = this.ensureMap(region)
-    map.generateLandscape(def.seed, def.landscape)
-    region.unlocked = true
-    region.sim = this.makeSim(
-      region.id,
-      map,
-      starterResidents(region.id, map, NEW_REGION_RESIDENT_COUNT),
-    )
-  }
-
   private createRegion(id: RegionIdType, saved?: RegionSave): RegionRuntime {
-    const unlocked = id === RegionId.Edo || Boolean(saved?.unlocked)
+    const unlocked = id === RegionId.Edo
     if (!unlocked) {
       return { id, unlocked: false, map: undefined, sim: undefined, pendingMs: 0 }
     }
@@ -463,32 +420,9 @@ export class WorldSession {
     )
   }
 
-  private peopleTable(): Map<RegionIdType, Resident[]> {
-    return new Map(
-      this.regions
-        .filter((region) => region.sim)
-        .map((region) => [region.id, region.sim!.residents]),
-    )
-  }
-
   private unlockedSet(): Set<RegionIdType> {
     return new Set(this.regions.filter((region) => region.unlocked).map((region) => region.id))
   }
-}
-
-function starterResidents(id: RegionIdType, map: WorldMap, count: number): Resident[] {
-  const spawn = map.tileCenter(Math.floor(map.width / 2), Math.floor(map.height / 2))
-  return Array.from({ length: count }, (_, index) => {
-    const angle = (index / count) * Math.PI * 2
-    return createResident({
-      id: `resident-${id}-${index + 1}`,
-      name: residentName(index + 40),
-      gender: residentGender(index + 40),
-      age: residentAge(index + 3),
-      worldX: spawn.x + Math.cos(angle) * map.tileSize,
-      worldY: spawn.y + Math.sin(angle) * map.tileSize,
-    })
-  })
 }
 
 function parseSpreads(raw: unknown): TechSpread[] {

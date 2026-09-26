@@ -2,6 +2,7 @@ import {
   FARMING_HARVEST_BONUS,
   INITIAL_RESIDENT_COUNT,
   INFLOW_INTERVAL_HOURS,
+  LEISURE_WALK_SPEED,
   RESIDENT_MOVE_SPEED,
   WORK_END_HOUR,
   WORK_START_HOUR,
@@ -25,12 +26,13 @@ import { tickTechDiscovery } from '../progress/discovery.ts'
 import { createProgress, hasTech, type ProgressState } from '../progress/progress.ts'
 import { TechId } from '../progress/tech.ts'
 import { applySchedule } from './commute.ts'
+import { arriveLeisure, tickLeisure } from './leisure.ts'
 import { assignJobs } from './employment.ts'
 import { applyHappiness, averageHappiness } from './happiness.ts'
 import { assignHomes, relocateIfNeeded } from './housing.ts'
 import { gameHoursFromDelta, tickNeeds } from './needs.ts'
 import { residentAge, residentGender, residentName } from './names.ts'
-import { clearRide, createResident, ResidentState, type Resident, type TileRef } from './resident.ts'
+import { clearRide, createResident, isLeisureState, ResidentState, type Resident, type TileRef } from './resident.ts'
 import { finishShopping, maybeStartShopping } from './shopping.ts'
 import { moveSpeedMultiplier, planTransit, sameTile } from '../transit/network.ts'
 import { TransitService, type TransitStats } from '../transit/service.ts'
@@ -149,6 +151,7 @@ export class ResidentSim {
       applySchedule(resident, hour, isHoliday)
       tryStartHaul(resident, this.map)
       maybeStartShopping(resident, this.map, hour, isHoliday)
+      tickLeisure(resident, this.residents, this.map, hour, isHoliday, gameHours)
       relocateIfNeeded(this.map, [resident])
       if (move) {
         this.walkTowardGoal(resident, deltaMs, speed, hour, isHoliday, treasury)
@@ -241,6 +244,9 @@ export class ResidentSim {
     const rideKind = resident.state === ResidentState.Riding ? resident.rideKind : undefined
     const step =
       RESIDENT_MOVE_SPEED *
+      (resident.state === ResidentState.Exercising || resident.state === ResidentState.Sporting
+        ? LEISURE_WALK_SPEED
+        : 1) *
       moveSpeedMultiplier(this.map, resident.worldX, resident.worldY, rideKind, {
         road: eraRoadSpeed(this.cityProgress),
         rail: eraRailSpeed(this.cityProgress),
@@ -286,6 +292,10 @@ export class ResidentSim {
         completeDrop(resident, this.map, goHome)
         return
       }
+      if (isLeisureState(goal.arriveState)) {
+        arriveLeisure(resident, this.residents, this.map)
+        return
+      }
       resident.state = goal.arriveState
       return
     }
@@ -296,6 +306,11 @@ export class ResidentSim {
 
   private prepareTransit(resident: Resident): void {
     if (resident.state === ResidentState.Riding) {
+      return
+    }
+
+    if (isLeisureState(resident.state)) {
+      clearRide(resident)
       return
     }
 
@@ -433,6 +448,10 @@ export class ResidentSim {
 
     if (resident.state === ResidentState.Hauling && resident.haulDrop) {
       return { tile: resident.haulDrop, arriveState: ResidentState.MovingToWork }
+    }
+
+    if (isLeisureState(resident.state) && resident.strollTarget) {
+      return { tile: resident.strollTarget, arriveState: resident.state }
     }
 
     return undefined

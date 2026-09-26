@@ -109,13 +109,18 @@ describe('shopping', () => {
     sim.update(16, GameSpeed.X1, 18)
     expect(resident.state).toBe(ResidentState.MovingToShop)
 
+    let returnedHome = false
     for (let i = 0; i < 200; i += 1) {
       sim.update(250, GameSpeed.X1, 18)
+      if (resident.state === ResidentState.Home && resident.money < moneyBefore) {
+        returnedHome = true
+        break
+      }
     }
 
     expect(resident.money).toBeLessThan(moneyBefore)
     expect(resident.hunger).toBeLessThan(70)
-    expect(resident.state).toBe(ResidentState.Home)
+    expect(returnedHome).toBe(true)
     expect(map.getTile(3, 0)?.xp).toBeGreaterThan(0)
     const home = map.tileCenter(0, 0)
     expect(resident.worldX).toBe(home.x)
