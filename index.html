@@ -12,7 +12,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>都市シミュレーション</title>
   </head>
-  <body>
+  <body data-shell="title">
     <div id="app"></div>
 
     <header id="top-bar">
@@ -390,6 +390,15 @@
         <button type="button" id="advance-era" hidden>
           1800年代へ進む
         </button>
+        <button type="button" id="save-game" title="いまの街を保存する">
+          保存
+        </button>
+        <button type="button" id="open-howto">
+          遊び方
+        </button>
+        <button type="button" id="title-back" title="タイトルへ戻る。街は保存されます">
+          タイトルへ
+        </button>
         <button type="button" id="clear-game" title="セーブを消して最初からやり直す">
           最初から
         </button>
@@ -412,6 +421,34 @@
         <div class="kanto-board japan-board" id="japan-board"></div>
         <div class="kanto-board earth-board" id="earth-board" hidden></div>
         <ol class="world-history" id="world-history" hidden></ol>
+      </section>
+    </div>
+
+    <div id="shell-overlay">
+      <section class="panel-card title-card" id="title-card">
+        <p class="title-kicker">1700年から、未来まで</p>
+        <h1>都市シミュレーション</h1>
+        <p class="title-lead">街をつくり、住民がその街で暮らします。</p>
+        <button type="button" id="title-start">はじめる</button>
+        <button type="button" id="title-continue">続きから</button>
+        <p class="title-continue-note" id="title-continue-note">セーブがありません</p>
+        <button type="button" id="title-howto">遊び方</button>
+      </section>
+      <section class="panel-card howto-card" id="howto-card" hidden>
+        <div class="panel-heading">
+          <h2>遊び方</h2>
+        </div>
+        <ol class="howto-list">
+          <li>上の道具で住宅・農地・道などを置きます。</li>
+          <li>住民は自分で住み、働き、買い物をします。</li>
+          <li>右側の要望を見て、足りないものを建てます。</li>
+          <li>技術が開くと駅・港・工場などが使えるようになります。</li>
+          <li>世界地図から、ほかの街へ移れます。</li>
+          <li>進捗は自動で保存されます。タイトルへ戻っても続きから遊べます。</li>
+        </ol>
+        <p class="hud-hint">矢印キーまたは右ドラッグで地図を動かし、ホイールで拡大縮小します。「見る」のときは住民や建物をクリックすると詳しい様子が見られます。</p>
+        <button type="button" id="howto-start" hidden>わかった、はじめる</button>
+        <button type="button" id="howto-close">もどる</button>
       </section>
     </div>
 

@@ -50,12 +50,12 @@ describe('production', () => {
   it('sends leftover farm food to a nearby shop', () => {
     const map = new WorldMap(4, 4, 32)
     map.place(0, 0, TileType.Farm)
-    map.place(3, 0, TileType.Shop)
+    map.place(2, 0, TileType.Shop)
     const farm = map.getTile(0, 0)
     if (farm) {
       farm.food = 8
     }
     tickProduction(map, 1)
-    expect(map.getTile(3, 0)?.food).toBeGreaterThan(0)
+    expect(map.getTile(2, 0)?.food).toBeGreaterThan(0)
   })
 })

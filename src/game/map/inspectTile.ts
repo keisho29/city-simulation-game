@@ -23,7 +23,8 @@ export function tileDetailView(
   y: number,
   era: EraId = EraId.Edo,
 ): TileDetailView | undefined {
-  const tile = map.getTile(x, y)
+  const origin = map.originOf(x, y) ?? { x, y }
+  const tile = map.getTile(origin.x, origin.y)
   if (!tile) {
     return undefined
   }
@@ -32,10 +33,10 @@ export function tileDetailView(
     name: tile.type === TileType.Vacant ? terrainDisplayName(tile.terrain) : buildingDisplayName(tile.type, tile.level, tile.variant, era),
     level: growableLevelLabel(tile),
     xp: growableXpLabel(tile),
-    value: `${landValue(map, x, y)}`,
+    value: `${landValue(map, origin.x, origin.y)}`,
     capacity: capacityLabel(tile),
     stock: stockLabel(tile),
-    transit: transitLabel(map, x, y, tile),
+    transit: transitLabel(map, origin.x, origin.y, tile),
   }
 }
 

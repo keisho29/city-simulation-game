@@ -10,6 +10,8 @@ describe('landscape', () => {
     expect(terrainDisplayName(Terrain.River)).toBe('川')
     expect(terrainDisplayName(Terrain.Forest)).toBe('森')
     expect(terrainDisplayName(Terrain.Rock)).toBe('岩場')
+    expect(terrainDisplayName(Terrain.Hill)).toBe('丘陵')
+    expect(terrainDisplayName(Terrain.Fertile)).toBe('肥沃な土地')
   })
 
   it('paints the same features for the same seed', () => {
@@ -68,7 +70,7 @@ describe('landscape', () => {
   it('keeps the map center buildable', () => {
     const map = new WorldMap(20, 20, 32)
     map.generateLandscape(99)
-    expect(map.canPlace(10, 10)).toBe(true)
+    expect(map.canPlace(10, 10, TileType.House)).toBe(true)
     expect(map.place(10, 10, TileType.House)).toBe(true)
   })
 
@@ -81,5 +83,78 @@ describe('landscape', () => {
     expect(map.canPlace(0, 0)).toBe(false)
     expect(map.place(0, 0, TileType.Road)).toBe(false)
     expect(map.canClear(0, 0)).toBe(false)
+  })
+
+  it('lays out Tokyo starting zones', () => {
+    const profile = { preset: 'tokyo' as const }
+    const first = generateLandscapeLayout(50, 50, 1700, profile)
+    const second = generateLandscapeLayout(50, 50, 1700, profile)
+    expect(first).toEqual(second)
+    expect(first).toContain(Terrain.Forest)
+    expect(first).toContain(Terrain.River)
+    expect(first).toContain(Terrain.Water)
+    expect(first).toContain(Terrain.Rock)
+    expect(first).toContain(Terrain.Hill)
+    expect(first).toContain(Terrain.Fertile)
+
+    let forestTop = 0
+    let forestBottom = 0
+    let hillsNorthEast = 0
+    let rocksSouthWest = 0
+    let fertileSouth = 0
+    first.forEach((terrain, index) => {
+      const x = index % 50
+      const y = Math.floor(index / 50)
+      if (terrain === Terrain.Forest) {
+        if (x + y < 40) {
+          forestTop += 1
+        } else {
+          forestBottom += 1
+        }
+      }
+      if (terrain === Terrain.Hill && x > 28 && y < 18) {
+        hillsNorthEast += 1
+      }
+      if (terrain === Terrain.Rock && x < 18 && y > 30) {
+        rocksSouthWest += 1
+      }
+      if (terrain === Terrain.Fertile && y > 32) {
+        fertileSouth += 1
+      }
+    })
+    expect(forestTop).toBeGreaterThan(forestBottom)
+    expect(hillsNorthEast).toBeGreaterThan(8)
+    expect(rocksSouthWest).toBeGreaterThan(8)
+    expect(fertileSouth).toBeGreaterThan(20)
+
+    const map = new WorldMap(50, 50, 32)
+    map.generateLandscape(1700, profile)
+    let startPlot = false
+    for (let y = 22; y <= 28; y += 1) {
+      for (let x = 22; x <= 28; x += 1) {
+        if (map.canPlace(x, y, TileType.House)) {
+          startPlot = true
+        }
+      }
+    }
+    expect(startPlot).toBe(true)
+    let roads = 0
+    map.forEachTile((_x, _y, tile) => {
+      if (tile.type === TileType.Road) {
+        roads += 1
+      }
+    })
+    expect(roads).toBeGreaterThan(8)
+    let bridges = 0
+    map.forEachTile((_x, _y, tile) => {
+      if (tile.type === TileType.Road && (tile.terrain === Terrain.River || tile.terrain === Terrain.Water)) {
+        bridges += 1
+      }
+    })
+    expect(bridges).toBeGreaterThan(0)
+    const hillIndex = first.indexOf(Terrain.Hill)
+    const rockIndex = first.indexOf(Terrain.Rock)
+    expect(map.canPlace(hillIndex % 50, Math.floor(hillIndex / 50), TileType.House)).toBe(false)
+    expect(map.canPlace(rockIndex % 50, Math.floor(rockIndex / 50), TileType.House)).toBe(false)
   })
 })

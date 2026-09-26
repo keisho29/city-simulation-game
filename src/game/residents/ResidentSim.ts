@@ -29,7 +29,7 @@ import { assignJobs } from './employment.ts'
 import { applyHappiness, averageHappiness } from './happiness.ts'
 import { assignHomes, relocateIfNeeded } from './housing.ts'
 import { gameHoursFromDelta, tickNeeds } from './needs.ts'
-import { residentAge, residentName } from './names.ts'
+import { residentAge, residentGender, residentName } from './names.ts'
 import { clearRide, createResident, ResidentState, type Resident, type TileRef } from './resident.ts'
 import { finishShopping, maybeStartShopping } from './shopping.ts'
 import { moveSpeedMultiplier, planTransit, sameTile } from '../transit/network.ts'
@@ -78,6 +78,7 @@ export class ResidentSim {
       return createResident({
         id: `resident-${index + 1}`,
         name: residentName(index),
+        gender: residentGender(index),
         age: residentAge(index),
         worldX: spawn.x + Math.cos(angle) * radius,
         worldY: spawn.y + Math.sin(angle) * radius,

@@ -16,6 +16,7 @@ describe('tile inspect', () => {
     expect(view?.stock).toBe('-')
     expect(view?.transit).toBe('-')
     expect(Number(view?.value)).toBeGreaterThan(0)
+    expect(tileDetailView(map, 2, 2)?.name).toBe('木造住宅')
   })
 
   it('names a lake when the tile is water', () => {

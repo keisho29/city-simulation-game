@@ -53,6 +53,9 @@ export function buildingDisplayName(
   variant: number,
   era: EraId = EraId.Edo,
 ): string {
+  if (type === TileType.Extension) {
+    return '建物の敷地'
+  }
   if (type === TileType.House) {
     if (era === EraId.Future) {
       return 'タワー住居'

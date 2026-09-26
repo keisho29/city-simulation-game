@@ -10,7 +10,7 @@ describe('population inflow', () => {
   it('accepts a newcomer when there is a vacant house and the town is happy', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(1, 1, TileType.House)
-    map.place(2, 1, TileType.House)
+    map.place(3, 1, TileType.House)
     map.occupyHouse(1, 1, 'r1')
     const residents = [
       createResident({
@@ -40,7 +40,7 @@ describe('population inflow', () => {
   it('adds a newcomer after enough game time', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(1, 1, TileType.House)
-    map.place(2, 1, TileType.House)
+    map.place(3, 1, TileType.House)
     map.occupyHouse(1, 1, 'r1')
     const sim = new ResidentSim(map, [
       createResident({

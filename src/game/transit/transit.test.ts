@@ -21,11 +21,13 @@ describe('roads speed', () => {
   it('moves faster on a road than on grass', () => {
     const map = grassMap(4, 2)
     map.place(1, 0, TileType.Road)
-    const grass = moveSpeedMultiplier(map, 16, 16)
-    const road = moveSpeedMultiplier(map, 48, 16)
-    expect(grass).toBe(WALK_SPEED_MULT)
-    expect(road).toBe(ROAD_SPEED_MULT)
-    expect(road).toBeGreaterThan(grass)
+    const grass = map.tileCenter(0, 0)
+    const road = map.tileCenter(1, 0)
+    expect(moveSpeedMultiplier(map, grass.x, grass.y)).toBe(WALK_SPEED_MULT)
+    expect(moveSpeedMultiplier(map, road.x, road.y)).toBe(ROAD_SPEED_MULT)
+    expect(moveSpeedMultiplier(map, road.x, road.y)).toBeGreaterThan(
+      moveSpeedMultiplier(map, grass.x, grass.y),
+    )
   })
 })
 
@@ -33,17 +35,17 @@ describe('stations and rails', () => {
   it('lets the player place a station and connect it with rails', () => {
     const map = grassMap()
     expect(map.place(1, 1, TileType.Station)).toBe(true)
-    expect(map.place(2, 1, TileType.Rail)).toBe(true)
     expect(map.place(3, 1, TileType.Rail)).toBe(true)
-    expect(map.place(4, 1, TileType.Station)).toBe(true)
-    expect(map.railConnections(2, 1)).toBeGreaterThan(0)
-    expect(findRailPath(map, { x: 1, y: 1 }, { x: 4, y: 1 })?.length).toBe(4)
+    expect(map.place(4, 1, TileType.Rail)).toBe(true)
+    expect(map.place(5, 1, TileType.Station)).toBe(true)
+    expect(map.railConnections(3, 1)).toBeGreaterThan(0)
+    expect(findRailPath(map, { x: 1, y: 1 }, { x: 5, y: 1 })?.length).toBeGreaterThan(2)
   })
 
   it('picks rail when the walk is long and stations are linked', () => {
     const map = grassMap(16, 4)
     map.place(1, 1, TileType.Station)
-    for (let x = 2; x <= 12; x += 1) {
+    for (let x = 3; x <= 12; x += 1) {
       map.place(x, 1, TileType.Rail)
     }
     map.place(13, 1, TileType.Station)
@@ -61,13 +63,13 @@ describe('freight and ports', () => {
   it('moves farm food onto a connected station', () => {
     const map = grassMap()
     map.place(1, 1, TileType.Station)
-    map.place(2, 1, TileType.Rail)
-    map.place(3, 1, TileType.Station)
-    map.place(1, 2, TileType.Farm)
-    map.addStock(1, 2, StockKind.Food, 8)
+    map.place(3, 1, TileType.Rail)
+    map.place(4, 1, TileType.Station)
+    map.place(1, 3, TileType.Farm)
+    map.addStock(1, 3, StockKind.Food, 8)
     const moved = tickFreight(map, 2)
     expect(moved).toBeGreaterThan(0)
-    expect((map.getTile(1, 1)?.food ?? 0) + (map.getTile(3, 1)?.food ?? 0)).toBeGreaterThan(0)
+    expect((map.getTile(1, 1)?.food ?? 0) + (map.getTile(4, 1)?.food ?? 0)).toBeGreaterThan(0)
   })
 
   it('places a port only next to water', () => {
@@ -103,8 +105,8 @@ describe('transit demand', () => {
   it('charges a fare when a resident boards and counts upkeep', () => {
     const map = grassMap()
     map.place(1, 1, TileType.Station)
-    map.place(2, 1, TileType.Rail)
-    map.place(3, 1, TileType.Station)
+    map.place(3, 1, TileType.Rail)
+    map.place(4, 1, TileType.Station)
     const transit = new TransitService()
     transit.tick(map, 16, 1, 0)
     expect(transit.vehicles.some((vehicle) => vehicle.kind === 'train')).toBe(true)

@@ -5,8 +5,15 @@ import {
   transferStock as transferTileStock,
   type StockKind,
 } from '../economy/goods.ts'
+import { isoMapHeight, isoMapWidth, isoTileCenter, isoWorldToTile } from '../art/iso.ts'
 import { addBuildingXp, buildingVariantAt, houseSlots, jobSlots } from './growth.ts'
-import { generateLandscapeLayout, landscapeSeed, type LandscapeProfile } from './landscape.ts'
+import { footprintCells, footprintSpan } from './footprint.ts'
+import {
+  generateLandscapeLayout,
+  generateStarterRoads,
+  landscapeSeed,
+  type LandscapeProfile,
+} from './landscape.ts'
 import {
   Terrain,
   createTile,
@@ -38,11 +45,11 @@ export class WorldMap {
   }
 
   get pixelWidth(): number {
-    return this.width * this.tileSize
+    return isoMapWidth(this.width, this.height)
   }
 
   get pixelHeight(): number {
-    return this.height * this.tileSize
+    return isoMapHeight(this.width, this.height)
   }
 
   get tileCount(): number {
@@ -72,22 +79,24 @@ export class WorldMap {
   }
 
   worldToTile(worldX: number, worldY: number): { x: number; y: number } | undefined {
-    const x = Math.floor(worldX / this.tileSize)
-    const y = Math.floor(worldY / this.tileSize)
-    if (!this.inBounds(x, y)) {
+    const tile = isoWorldToTile(worldX, worldY, this.width, this.height)
+    if (!this.inBounds(tile.x, tile.y)) {
       return undefined
     }
-
-    return { x, y }
+    return tile
   }
 
   canPlace(x: number, y: number, type?: TileType): boolean {
-    const tile = this.getTile(x, y)
-    if (!tile || tile.type !== TileType.Vacant || !isBuildableTerrain(tile.terrain)) {
-      return false
+    const span = type ? footprintSpan(type) : 1
+    const cells = footprintCells(x, y, span)
+    for (const cell of cells) {
+      const tile = this.getTile(cell.x, cell.y)
+      if (!tile || tile.type !== TileType.Vacant || !isBuildableTerrain(tile.terrain)) {
+        return false
+      }
     }
     if (type === TileType.Port) {
-      return this.hasWaterNeighbor(x, y)
+      return cells.some((cell) => this.hasWaterNeighbor(cell.x, cell.y))
     }
     return true
   }
@@ -106,21 +115,91 @@ export class WorldMap {
       return false
     }
 
-    this.setTileType(x, y, type)
+    const origin = { x, y }
+    for (const cell of footprintCells(x, y, footprintSpan(type))) {
+      this.setTileType(cell.x, cell.y, cell.x === x && cell.y === y ? type : TileType.Extension)
+      const tile = this.getTile(cell.x, cell.y)
+      if (tile && (cell.x !== x || cell.y !== y)) {
+        tile.anchor = origin
+      }
+    }
     return true
   }
 
+  originOf(x: number, y: number): { x: number; y: number } | undefined {
+    const tile = this.getTile(x, y)
+    if (!tile || tile.type === TileType.Vacant) {
+      return undefined
+    }
+    if (tile.type === TileType.Extension) {
+      const anchor = tile.anchor
+      if (!anchor) {
+        return { x, y }
+      }
+      const origin = this.getTile(anchor.x, anchor.y)
+      if (!origin || origin.type === TileType.Vacant || origin.type === TileType.Extension) {
+        return { x, y }
+      }
+      return { x: anchor.x, y: anchor.y }
+    }
+    return { x, y }
+  }
+
+  placedSpan(x: number, y: number): number {
+    const origin = this.originOf(x, y) ?? { x, y }
+    const tile = this.getTile(origin.x, origin.y)
+    if (!tile) {
+      return 1
+    }
+    const span = footprintSpan(tile.type)
+    if (span <= 1) {
+      return 1
+    }
+    const cells = footprintCells(origin.x, origin.y, span)
+    const owned = cells.every((cell) => {
+      if (cell.x === origin.x && cell.y === origin.y) {
+        return true
+      }
+      const other = this.getTile(cell.x, cell.y)
+      return (
+        other?.type === TileType.Extension &&
+        other.anchor?.x === origin.x &&
+        other.anchor?.y === origin.y
+      )
+    })
+    return owned ? span : 1
+  }
+
+  footprintCellsOf(x: number, y: number): Array<{ x: number; y: number }> {
+    const origin = this.originOf(x, y) ?? { x, y }
+    return footprintCells(origin.x, origin.y, this.placedSpan(origin.x, origin.y)).filter((cell) =>
+      this.inBounds(cell.x, cell.y),
+    )
+  }
+
+  visualCenter(x: number, y: number, span = this.placedSpan(x, y)): { x: number; y: number } {
+    const origin = this.originOf(x, y) ?? { x, y }
+    return isoTileCenter(
+      origin.x + (span - 1) / 2,
+      origin.y + (span - 1) / 2,
+      this.width,
+      this.height,
+    )
+  }
+
   canClear(x: number, y: number): boolean {
-    const type = this.getTile(x, y)?.type
-    return type !== undefined && type !== TileType.Vacant
+    return this.originOf(x, y) !== undefined
   }
 
   clear(x: number, y: number): boolean {
-    if (!this.canClear(x, y)) {
+    const origin = this.originOf(x, y)
+    if (!origin) {
       return false
     }
 
-    this.setTileType(x, y, TileType.Vacant)
+    for (const cell of this.footprintCellsOf(origin.x, origin.y)) {
+      this.setTileType(cell.x, cell.y, TileType.Vacant)
+    }
     return true
   }
 
@@ -318,10 +397,29 @@ export class WorldMap {
   }
 
   tileCenter(x: number, y: number): { x: number; y: number } {
-    return {
-      x: (x + 0.5) * this.tileSize,
-      y: (y + 0.5) * this.tileSize,
+    return isoTileCenter(x, y, this.width, this.height)
+  }
+
+  alignToIso(occupant: {
+    worldX: number
+    worldY: number
+    home?: { x: number; y: number }
+    workplace?: { x: number; y: number }
+  }): void {
+    const here = this.worldToTile(occupant.worldX, occupant.worldY)
+    if (here) {
+      const center = this.tileCenter(here.x, here.y)
+      if (Math.hypot(occupant.worldX - center.x, occupant.worldY - center.y) <= this.tileSize * 1.25) {
+        return
+      }
     }
+
+    const anchor = occupant.home ?? occupant.workplace
+    const target = anchor
+      ? this.tileCenter(anchor.x, anchor.y)
+      : this.tileCenter(Math.floor(this.width / 2), Math.floor(this.height / 2))
+    occupant.worldX = target.x
+    occupant.worldY = target.y
   }
 
   forEachTile(callback: (x: number, y: number, tile: Tile) => void): void {
@@ -343,6 +441,7 @@ export class WorldMap {
       food: tile.food,
       wood: tile.wood,
       goods: tile.goods,
+      ...(tile.anchor ? { anchor: { x: tile.anchor.x, y: tile.anchor.y } } : {}),
     }))
   }
 
@@ -356,8 +455,16 @@ export class WorldMap {
     this.reset()
     const layout = generateLandscapeLayout(this.width, this.height, seed, profile)
     this.forEachTile((x, y, tile) => {
-      tile.terrain = layout[y * this.width + x]
+      tile.terrain = layout[y * this.width + x] ?? Terrain.Grass
     })
+    for (const road of generateStarterRoads(this.width, this.height, seed, profile)) {
+      const tile = this.getTile(road.x, road.y)
+      if (tile && isWaterTerrain(tile.terrain)) {
+        tile.type = TileType.Road
+        continue
+      }
+      this.place(road.x, road.y, TileType.Road)
+    }
   }
 
   restoreTiles(tiles: Tile[]): boolean {
@@ -377,6 +484,7 @@ export class WorldMap {
       target.food = source.food ?? 0
       target.wood = source.wood ?? 0
       target.goods = source.goods ?? 0
+      target.anchor = source.anchor ? { x: source.anchor.x, y: source.anchor.y } : undefined
     }
 
     return true
@@ -423,8 +531,18 @@ export class WorldMap {
   }
 
   isRail(x: number, y: number): boolean {
-    const type = this.getTile(x, y)?.type
-    return type !== undefined && isTrackType(type)
+    const tile = this.getTile(x, y)
+    if (!tile) {
+      return false
+    }
+    if (isTrackType(tile.type)) {
+      return true
+    }
+    if (tile.type !== TileType.Extension || !tile.anchor) {
+      return false
+    }
+    const origin = this.getTile(tile.anchor.x, tile.anchor.y)
+    return origin !== undefined && isTrackType(origin.type)
   }
 
   roadConnections(x: number, y: number): number {

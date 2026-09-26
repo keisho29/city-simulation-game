@@ -5,7 +5,7 @@ import {
   WALK_SPEED_MULT,
   WATER_SPEED_MULT,
 } from '../constants.ts'
-import { isTrackType, isWaterTerrain, Terrain, TileType } from '../map/tile.ts'
+import { isWaterTerrain, Terrain, TileType } from '../map/tile.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import type { TileRef } from '../residents/resident.ts'
 
@@ -119,10 +119,7 @@ export function findPath(
 }
 
 export function findRailPath(map: WorldMap, start: TileRef, goal: TileRef): TileRef[] | undefined {
-  return findPath(map, start, goal, (x, y) => {
-    const type = map.getTile(x, y)?.type
-    return type !== undefined && isTrackType(type)
-  })
+  return findPath(map, start, goal, (x, y) => map.isRail(x, y))
 }
 
 export function findWaterRoute(map: WorldMap, from: TileRef, to: TileRef): TileRef[] | undefined {
@@ -231,12 +228,20 @@ export function planTransit(map: WorldMap, from: TileRef, to: TileRef): TransitP
 
 function waterNeighbors(map: WorldMap, hub: TileRef): TileRef[] {
   const tiles: TileRef[] = []
-  for (const [dx, dy] of DIRS) {
-    const x = hub.x + dx
-    const y = hub.y + dy
-    const tile = map.getTile(x, y)
-    if (tile && isWaterTerrain(tile.terrain)) {
-      tiles.push({ x, y })
+  const seen = new Set<string>()
+  for (const cell of map.footprintCellsOf(hub.x, hub.y)) {
+    for (const [dx, dy] of DIRS) {
+      const x = cell.x + dx
+      const y = cell.y + dy
+      const key = `${x},${y}`
+      if (seen.has(key)) {
+        continue
+      }
+      const tile = map.getTile(x, y)
+      if (tile && isWaterTerrain(tile.terrain)) {
+        seen.add(key)
+        tiles.push({ x, y })
+      }
     }
   }
   return tiles

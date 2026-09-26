@@ -11,6 +11,10 @@ export function terrainDisplayName(terrain: Terrain): string {
       return '森'
     case Terrain.Rock:
       return '岩場'
+    case Terrain.Hill:
+      return '丘陵'
+    case Terrain.Fertile:
+      return '肥沃な土地'
     default:
       return '空き地'
   }
@@ -21,6 +25,7 @@ export type LandscapeProfile = {
   rivers?: number
   forests?: number
   rocks?: number
+  preset?: 'tokyo'
 }
 
 export function generateLandscapeLayout(
@@ -29,6 +34,10 @@ export function generateLandscapeLayout(
   seed: number,
   profile: LandscapeProfile = {},
 ): Terrain[] {
+  if (profile.preset === 'tokyo') {
+    return generateTokyoLayout(width, height, seed)
+  }
+
   const cells: Terrain[] = Array.from({ length: width * height }, () => Terrain.Grass)
   const rng = mulberry32(seed)
   const cx = Math.floor(width / 2)
@@ -93,6 +102,18 @@ export function generateLandscapeLayout(
   }
 
   return cells
+}
+
+export function generateStarterRoads(
+  width: number,
+  height: number,
+  _seed: number,
+  profile: LandscapeProfile = {},
+): Array<{ x: number; y: number }> {
+  if (profile.preset !== 'tokyo') {
+    return []
+  }
+  return tokyoRoads(width, height)
 }
 
 function countForSize(width: number, height: number, full: number, tiny: number): number {
@@ -281,4 +302,220 @@ function mulberry32(seed: number): () => number {
 
 export function landscapeSeed(): number {
   return (hash32(Date.now() ^ Math.floor(Math.random() * 0xffffffff)) || 1) >>> 0
+}
+
+function mapPoint(width: number, height: number, x50: number, y50: number): { x: number; y: number } {
+  return {
+    x: Math.max(0, Math.min(width - 1, Math.round((x50 / 49) * (width - 1)))),
+    y: Math.max(0, Math.min(height - 1, Math.round((y50 / 49) * (height - 1)))),
+  }
+}
+
+function at(cells: Terrain[], width: number, x: number, y: number): Terrain | undefined {
+  if (x < 0 || y < 0 || x >= width || y >= cells.length / width) {
+    return undefined
+  }
+  return cells[y * width + x]
+}
+
+function setCell(cells: Terrain[], width: number, x: number, y: number, value: Terrain): void {
+  const height = cells.length / width
+  if (x < 0 || y < 0 || x >= width || y >= height) {
+    return
+  }
+  cells[y * width + x] = value
+}
+
+function inStart(width: number, height: number, x: number, y: number): boolean {
+  const cx = (width - 1) / 2
+  const cy = (height - 1) / 2
+  const radius = Math.max(3, Math.min(width, height) * 0.1)
+  const dx = x - cx
+  const dy = y - cy
+  return dx * dx + dy * dy <= radius * radius
+}
+
+function zoneNoise(seed: number, x: number, y: number): number {
+  return ((hash32(seed + x * 19 + y * 43) >>> 0) % 100) / 100
+}
+
+function generateTokyoLayout(width: number, height: number, seed: number): Terrain[] {
+  const cells: Terrain[] = Array.from({ length: width * height }, () => Terrain.Grass)
+  const maxX = Math.max(1, width - 1)
+  const maxY = Math.max(1, height - 1)
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (inStart(width, height, x, y)) {
+        continue
+      }
+      const nx = x / maxX
+      const ny = y / maxY
+      const wobble = (zoneNoise(seed, x, y) - 0.5) * 0.06
+      const scatter = zoneNoise(seed + 91, x, y)
+      if (nx < 0.34 + wobble && ny > 0.62 - wobble) {
+        if (scatter > 0.22) {
+          setCell(cells, width, x, y, Terrain.Rock)
+        }
+        continue
+      }
+      if (nx > 0.58 + wobble && ny < 0.34 + wobble) {
+        if (scatter > 0.35) {
+          setCell(cells, width, x, y, Terrain.Hill)
+        }
+        continue
+      }
+      if (ny > 0.64 - wobble && nx > 0.28 + wobble) {
+        setCell(cells, width, x, y, Terrain.Fertile)
+      }
+    }
+  }
+
+  paintTokyoRiver(cells, width, height, seed)
+  paintTokyoLake(cells, width, height)
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (inStart(width, height, x, y)) {
+        const current = at(cells, width, x, y)
+        if (current && !isWaterTerrain(current)) {
+          setCell(cells, width, x, y, Terrain.Grass)
+        }
+        continue
+      }
+      const nx = x / maxX
+      const ny = y / maxY
+      const wobble = (zoneNoise(seed, x, y) - 0.5) * 0.05
+      const forest = nx + ny < 0.62 + wobble && nx < 0.54 && ny < 0.5
+      if (!forest) {
+        continue
+      }
+      if (at(cells, width, x, y) !== Terrain.Grass) {
+        continue
+      }
+      if (zoneNoise(seed + 3, x, y) < 0.2) {
+        continue
+      }
+      setCell(cells, width, x, y, Terrain.Forest)
+    }
+  }
+
+  return cells
+}
+
+function paintTokyoRiver(cells: Terrain[], width: number, height: number, seed: number): void {
+  const main: Array<[number, number]> = [
+    [3, 8],
+    [8, 13],
+    [13, 18],
+    [16, 22],
+    [18, 26],
+    [22, 31],
+    [27, 36],
+    [33, 41],
+    [40, 45],
+    [47, 48],
+  ]
+  const branch: Array<[number, number]> = [
+    [13, 18],
+    [9, 26],
+    [7, 34],
+    [10, 42],
+  ]
+  paintPolyline(cells, width, height, main, seed)
+  paintPolyline(cells, width, height, branch, seed + 11)
+}
+
+function paintTokyoLake(cells: Terrain[], width: number, height: number): void {
+  const center = mapPoint(width, height, 38, 44)
+  const radius = Math.max(2, Math.round(Math.min(width, height) / 18))
+  for (let dy = -radius; dy <= radius; dy += 1) {
+    for (let dx = -radius; dx <= radius; dx += 1) {
+      if (dx * dx + dy * dy > radius * radius) {
+        continue
+      }
+      const x = center.x + dx
+      const y = center.y + dy
+      if (inStart(width, height, x, y)) {
+        continue
+      }
+      setCell(cells, width, x, y, Terrain.Water)
+    }
+  }
+}
+
+function paintPolyline(
+  cells: Terrain[],
+  width: number,
+  height: number,
+  points: Array<[number, number]>,
+  seed: number,
+): void {
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const from = mapPoint(width, height, points[i]![0], points[i]![1])
+    const to = mapPoint(width, height, points[i + 1]![0], points[i + 1]![1])
+    walkLine(from.x, from.y, to.x, to.y, (x, y) => {
+      if (inStart(width, height, x, y)) {
+        return
+      }
+      setCell(cells, width, x, y, Terrain.River)
+      const extra = zoneNoise(seed, x, y) > 0.72
+      if (extra) {
+        setCell(cells, width, x + 1, y, Terrain.River)
+      }
+    })
+  }
+}
+
+function walkLine(
+  x0: number,
+  y0: number,
+  x1: number,
+  y1: number,
+  visit: (x: number, y: number) => void,
+): void {
+  const dx = Math.abs(x1 - x0)
+  const dy = Math.abs(y1 - y0)
+  const sx = x0 < x1 ? 1 : -1
+  const sy = y0 < y1 ? 1 : -1
+  let err = dx - dy
+  let x = x0
+  let y = y0
+  while (true) {
+    visit(x, y)
+    if (x === x1 && y === y1) {
+      break
+    }
+    const e2 = 2 * err
+    if (e2 > -dy) {
+      err -= dy
+      x += sx
+    }
+    if (e2 < dx) {
+      err += dx
+      y += sy
+    }
+  }
+}
+
+function tokyoRoads(width: number, height: number): Array<{ x: number; y: number }> {
+  const unique = new Map<string, { x: number; y: number }>()
+  const add = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= width || y >= height) {
+      return
+    }
+    const cx = (width - 1) / 2
+    const cy = (height - 1) / 2
+    if (Math.hypot(x - cx, y - cy) < 2.4) {
+      return
+    }
+    unique.set(`${x},${y}`, { x, y })
+  }
+  const start = mapPoint(width, height, 27, 24)
+  const plains = mapPoint(width, height, 35, 19)
+  walkLine(start.x, start.y, plains.x, plains.y, add)
+  const ford = mapPoint(width, height, 18, 26)
+  const plaza = mapPoint(width, height, 22, 26)
+  walkLine(ford.x, ford.y, plaza.x, plaza.y, add)
+  return [...unique.values()]
 }

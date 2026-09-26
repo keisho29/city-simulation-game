@@ -42,11 +42,24 @@ describe('kanto regions', () => {
 
   it('connects Edo and Yokohama by ship after both have ports', () => {
     const world = new WorldSession()
-    const edoWater = world.active.map.getTile(8, 7)
+    const edoMap = world.active.map
+    for (const [x, y] of [
+      [8, 8],
+      [9, 8],
+      [8, 9],
+      [9, 9],
+    ] as const) {
+      const tile = edoMap.getTile(x, y)
+      if (tile) {
+        tile.terrain = Terrain.Grass
+        tile.type = TileType.Vacant
+      }
+    }
+    const edoWater = edoMap.getTile(8, 7)
     if (edoWater) {
       edoWater.terrain = Terrain.Water
     }
-    expect(world.active.map.place(8, 8, TileType.Port)).toBe(true)
+    expect(edoMap.place(8, 8, TileType.Port)).toBe(true)
     const yokohamaMap = world.mapOf(RegionId.Yokohama)!
     world.region(RegionId.Yokohama)!.unlocked = true
     const yokoWater = yokohamaMap.getTile(6, 5)

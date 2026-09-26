@@ -31,7 +31,7 @@ export function averageLandValue(map: WorldMap): number {
   let total = 0
   let count = 0
   map.forEachTile((x, y, tile) => {
-    if (tile.type === TileType.Vacant) {
+    if (tile.type === TileType.Vacant || tile.type === TileType.Extension) {
       return
     }
     total += landValue(map, x, y)

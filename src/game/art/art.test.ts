@@ -16,6 +16,9 @@ import {
   RESIDENT_ATLAS_ORDER,
   RESIDENT_SPRITES,
   residentArtKey,
+  residentFacingFromDelta,
+  residentSprite,
+  residentWalkPose,
   validateResidentArt,
 } from './residentArt.ts'
 
@@ -56,7 +59,7 @@ describe('tile art', () => {
 })
 
 describe('resident art', () => {
-  it('keeps every resident sprite at 12×16', () => {
+  it('keeps every resident sprite at 20×28', () => {
     expect(() => validateResidentArt()).not.toThrow()
 
     for (const key of RESIDENT_ATLAS_ORDER) {
@@ -64,7 +67,22 @@ describe('resident art', () => {
       expect(RESIDENT_SPRITES[key].rows.every((row) => row.length === RESIDENT_ART_WIDTH)).toBe(
         true,
       )
+      expect(residentSprite(key, 'a').rows).toHaveLength(RESIDENT_ART_HEIGHT)
+      expect(residentSprite(key, 'b').rows).toHaveLength(RESIDENT_ART_HEIGHT)
+      expect(residentSprite(key, 'a').rows).not.toEqual(RESIDENT_SPRITES[key].rows)
+      expect(residentSprite(key, 'idle', 'back').rows).not.toEqual(RESIDENT_SPRITES[key].rows)
     }
+  })
+
+  it('swings walk frames while moving and stands still when stopped', () => {
+    expect(residentWalkPose(false, 40)).toBe('idle')
+    expect(residentWalkPose(true, 0)).toBe('a')
+    expect(residentWalkPose(true, 8)).toBe('b')
+    expect(residentWalkPose(true, 16)).toBe('a')
+    expect(residentFacingFromDelta(0, 0)).toBeUndefined()
+    expect(residentFacingFromDelta(4, 3)).toEqual({ facing: 'front', flipX: false })
+    expect(residentFacingFromDelta(-4, 3)).toEqual({ facing: 'front', flipX: true })
+    expect(residentFacingFromDelta(4, -3)).toEqual({ facing: 'back', flipX: false })
   })
 
   it('maps age and job to a sprite', () => {
@@ -73,7 +91,9 @@ describe('resident art', () => {
     expect(residentArtKey({ age: 30 }, TileType.Farm)).toBe('farmer')
     expect(residentArtKey({ age: 30 }, TileType.Workshop)).toBe('artisan')
     expect(residentArtKey({ age: 30 }, TileType.Shop)).toBe('merchant')
-    expect(residentArtKey({ age: 30 }, undefined)).toBe('townsfolk')
+    expect(residentArtKey({ age: 30 }, TileType.Market)).toBe('market')
+    expect(residentArtKey({ age: 30 }, TileType.Warehouse)).toBe('warehouse')
+    expect(residentArtKey({ age: 30 }, undefined)).toBe('unemployed')
   })
 })
 

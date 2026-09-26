@@ -1,4 +1,5 @@
 import { TileType } from '../map/tile.ts'
+import { isResidentIndoor } from './occupancy.ts'
 import { ResidentState, type Resident, type TileRef } from './resident.ts'
 
 export const RESIDENT_PICK_RADIUS = 28
@@ -81,6 +82,9 @@ export function pickNearestResident(
   let nearestDistance = radius
 
   for (const resident of residents) {
+    if (isResidentIndoor(resident)) {
+      continue
+    }
     const distance = Math.hypot(resident.worldX - worldX, resident.worldY - worldY)
     if (distance <= nearestDistance) {
       nearest = resident

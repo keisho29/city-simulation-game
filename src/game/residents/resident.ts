@@ -1,5 +1,6 @@
 import { HAPPINESS_BASE, INITIAL_HUNGER, INITIAL_RESIDENT_MONEY } from '../constants.ts'
 import type { StockKind } from '../economy/goods.ts'
+import { ResidentGender as NamedGender, genderFromName } from './names.ts'
 
 export const ResidentState = {
   SeekingHome: 'SEEKING_HOME',
@@ -22,9 +23,12 @@ export type TileRef = {
   y: number
 }
 
+export type ResidentGender = 'male' | 'female'
+
 export type Resident = {
   id: string
   name: string
+  gender: ResidentGender
   age: number
   home: TileRef | undefined
   workplace: TileRef | undefined
@@ -58,6 +62,7 @@ export function createResident(overrides: Partial<Resident> = {}): Resident {
   return {
     id: overrides.id ?? 'resident-1',
     name: overrides.name ?? '太助',
+    gender: overrides.gender ?? genderFromName(overrides.name ?? '太助') ?? NamedGender.Male,
     age: overrides.age ?? 28,
     home: overrides.home,
     workplace: overrides.workplace,

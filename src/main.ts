@@ -5,7 +5,7 @@ import { MainScene } from './game/scenes/MainScene.ts'
 const config: Phaser.Types.Core.GameConfig = {
   type: Phaser.AUTO,
   parent: 'app',
-  backgroundColor: '#a8dc3c',
+  backgroundColor: '#b6e66a',
   scene: MainScene,
   render: {
     antialias: false,

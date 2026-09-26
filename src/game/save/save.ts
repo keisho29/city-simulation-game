@@ -110,6 +110,14 @@ export function parseSnapshot(raw: unknown): SaveSnapshot | undefined {
   }
 }
 
+export function peekSaveLabel(storage: Pick<Storage, 'getItem'>): string | undefined {
+  const snapshot = loadSnapshot(storage)
+  if (!snapshot) {
+    return undefined
+  }
+  return `${snapshot.year}年${snapshot.month}月${snapshot.day}日`
+}
+
 export function loadSnapshot(storage: Pick<Storage, 'getItem'>): SaveSnapshot | undefined {
   try {
     const raw = storage.getItem(SAVE_STORAGE_KEY)
@@ -159,6 +167,7 @@ function parseTile(raw: unknown): Tile | undefined {
     food: isFiniteNumber(raw.food) ? Math.max(0, raw.food) : 0,
     wood: isFiniteNumber(raw.wood) ? Math.max(0, raw.wood) : 0,
     goods: isFiniteNumber(raw.goods) ? Math.max(0, raw.goods) : 0,
+    anchor: parseTileRef(raw.anchor),
   }
 }
 
@@ -184,9 +193,10 @@ function parseResident(raw: unknown): Resident | undefined {
   }
 
   return createResident({
-    id: raw.id,
-    name: raw.name,
-    age: raw.age,
+    gender:
+      raw.gender === 'female' || raw.gender === 'male'
+        ? raw.gender
+        : undefined,
     home: parseTileRef(raw.home),
     workplace: parseTileRef(raw.workplace),
     shopTarget: parseTileRef(raw.shopTarget),

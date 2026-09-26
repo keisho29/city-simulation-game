@@ -57,4 +57,14 @@ describe('resident inspect', () => {
     expect(inspectResident([resident], 0, 0, { x: 8, y: 4 })).toBeUndefined()
     expect(inspectResident([resident], 118, 148, { x: 3, y: 4 })?.id).toBe('resident-1')
   })
+
+  it('does not pick a resident who has gone indoors', () => {
+    const indoor = createResident({
+      state: ResidentState.Home,
+      home: { x: 3, y: 4 },
+      worldX: 112,
+      worldY: 144,
+    })
+    expect(pickNearestResident([indoor], 112, 144)).toBeUndefined()
+  })
 })

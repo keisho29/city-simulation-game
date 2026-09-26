@@ -11,7 +11,7 @@ import type { Treasury } from '../economy/treasury.ts'
 import { WorldMap } from '../map/WorldMap.ts'
 import { createProgress, type ProgressState } from '../progress/progress.ts'
 import { isTechId, techName, TechId } from '../progress/tech.ts'
-import { residentAge, residentName } from '../residents/names.ts'
+import { residentAge, residentGender, residentName } from '../residents/names.ts'
 import { createResident, type Resident } from '../residents/resident.ts'
 import { ResidentSim } from '../residents/ResidentSim.ts'
 import type { TransitStats } from '../transit/service.ts'
@@ -341,7 +341,7 @@ export class WorldSession {
     if (saved?.tiles && saved.tiles.length === map.tileCount) {
       map.restoreTiles(saved.tiles)
     } else {
-      map.generateLandscape(id === RegionId.Edo ? undefined : def.seed, def.landscape)
+      map.generateLandscape(def.seed, def.landscape)
     }
     return {
       id,
@@ -376,6 +376,11 @@ export class WorldSession {
     fortune?: number,
   ): ResidentSim {
     const sim = new ResidentSim(map, residents, event ?? createCityEvent(), this.progress, transit)
+    if (residents) {
+      for (const resident of sim.residents) {
+        map.alignToIso(resident)
+      }
+    }
     const def = REGIONS[id]
     sim.climateHarvest = def.harvest
     sim.climateWood = def.wood
@@ -478,6 +483,7 @@ function starterResidents(id: RegionIdType, map: WorldMap, count: number): Resid
     return createResident({
       id: `resident-${id}-${index + 1}`,
       name: residentName(index + 40),
+      gender: residentGender(index + 40),
       age: residentAge(index + 3),
       worldX: spawn.x + Math.cos(angle) * map.tileSize,
       worldY: spawn.y + Math.sin(angle) * map.tileSize,

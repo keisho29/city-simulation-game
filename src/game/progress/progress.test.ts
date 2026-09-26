@@ -90,13 +90,13 @@ describe('city development', () => {
     const empty = new WorldMap(6, 6, 32)
     const emptyScore = cityDevelopment(empty, [createResident()])
     const grown = new WorldMap(6, 6, 32)
-    grown.place(1, 1, TileType.House)
-    grown.place(2, 1, TileType.Farm)
-    grown.place(3, 1, TileType.Shop)
-    grown.occupyHouse(1, 1, 'r1')
-    grown.occupyJob(2, 1, 'r1')
+    grown.place(0, 0, TileType.House)
+    grown.place(2, 0, TileType.Farm)
+    grown.place(3, 0, TileType.Shop)
+    grown.occupyHouse(0, 0, 'r1')
+    grown.occupyJob(2, 0, 'r1')
     const grownScore = cityDevelopment(grown, [
-      createResident({ id: 'r1', home: { x: 1, y: 1 }, workplace: { x: 2, y: 1 }, happiness: 80 }),
+      createResident({ id: 'r1', home: { x: 0, y: 0 }, workplace: { x: 2, y: 0 }, happiness: 80 }),
     ])
     expect(grownScore).toBeGreaterThan(emptyScore)
   })
@@ -106,17 +106,17 @@ describe('era advance', () => {
   it('lets the city move to the 1800s when growth and techs are ready', () => {
     const map = new WorldMap(8, 8, 32)
     map.place(0, 0, TileType.House)
-    map.place(1, 0, TileType.House)
     map.place(2, 0, TileType.House)
-    map.place(3, 0, TileType.House)
-    map.place(0, 1, TileType.Farm)
-    map.place(1, 1, TileType.Shop)
-    map.place(2, 1, TileType.Workshop)
-    const residents = [0, 1, 2, 3].map((index) =>
+    map.place(4, 0, TileType.House)
+    map.place(6, 0, TileType.House)
+    map.place(0, 2, TileType.Farm)
+    map.place(2, 2, TileType.Shop)
+    map.place(4, 2, TileType.Workshop)
+    const residents = [0, 2, 4, 6].map((x) =>
       createResident({
-        id: `r${index}`,
-        home: { x: index, y: 0 },
-        workplace: { x: index % 3, y: 1 },
+        id: `r${x}`,
+        home: { x, y: 0 },
+        workplace: { x: x === 6 ? 4 : x, y: 2 },
         happiness: 70,
       }),
     )
@@ -132,15 +132,22 @@ describe('era advance', () => {
 
   it('opens 1900s after industry and railways take hold', () => {
     const map = new WorldMap(8, 8, 32)
-    for (let index = 0; index < 10; index += 1) {
-      map.place(index % 8, Math.floor(index / 8), TileType.House)
+    const homes: Array<{ x: number; y: number }> = []
+    for (let y = 0; y <= 4; y += 2) {
+      for (let x = 0; x <= 6; x += 2) {
+        if (homes.length >= 10) {
+          break
+        }
+        map.place(x, y, TileType.House)
+        homes.push({ x, y })
+      }
     }
-    map.place(0, 2, TileType.Factory)
-    const residents = Array.from({ length: 10 }, (_, index) =>
+    map.place(4, 6, TileType.Factory)
+    const residents = homes.map((home, index) =>
       createResident({
         id: `r${index}`,
-        home: { x: index % 8, y: Math.floor(index / 8) },
-        workplace: { x: 0, y: 2 },
+        home,
+        workplace: { x: 4, y: 6 },
         happiness: 70,
       }),
     )

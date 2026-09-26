@@ -1,7 +1,7 @@
 import { INFLOW_MIN_HAPPINESS, MAX_POPULATION } from '../constants.ts'
 import type { WorldMap } from '../map/WorldMap.ts'
 import { averageHappiness } from '../residents/happiness.ts'
-import { residentAge, residentName } from '../residents/names.ts'
+import { residentAge, residentGender, residentName } from '../residents/names.ts'
 import { createResident, type Resident } from '../residents/resident.ts'
 
 export function canAcceptInflow(
@@ -31,6 +31,7 @@ export function createInflowResident(
   return createResident({
     id: `resident-${index + 1}`,
     name: residentName(index),
+    gender: residentGender(index),
     age: residentAge(index),
     worldX: spawn.x + Math.cos(angle) * map.tileSize,
     worldY: spawn.y + Math.sin(angle) * map.tileSize,

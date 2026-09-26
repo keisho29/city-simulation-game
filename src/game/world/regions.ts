@@ -127,7 +127,7 @@ const SEEDS: RegionSeed[] = [
     wood: 1,
     land: 1,
     seed: 1700,
-    landscape: {},
+    landscape: { preset: 'tokyo' },
     grassTint: 0xffffff,
     japan: { x: 76, y: 42 },
     world: { x: 86, y: 40 },

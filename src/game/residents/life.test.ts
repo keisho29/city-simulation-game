@@ -48,8 +48,8 @@ describe('shopping', () => {
   it('sends a hungry resident to the nearest shop after work', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(0, 0, TileType.House)
-    map.place(4, 0, TileType.Shop)
-    const shop = map.getTile(4, 0)
+    map.place(3, 0, TileType.Shop)
+    const shop = map.getTile(3, 0)
     if (shop) {
       shop.food = 8
     }
@@ -64,12 +64,12 @@ describe('shopping', () => {
     maybeStartShopping(resident, map, 18, false)
 
     expect(resident.state).toBe(ResidentState.MovingToShop)
-    expect(resident.shopTarget).toEqual({ x: 4, y: 0 })
+    expect(resident.shopTarget).toEqual({ x: 3, y: 0 })
   })
 
   it('does not shop during work hours on a weekday', () => {
     const map = new WorldMap(5, 5, 32)
-    map.place(4, 0, TileType.Shop)
+    map.place(3, 0, TileType.Shop)
     const resident = createResident({
       home: { x: 0, y: 0 },
       workplace: { x: 2, y: 2 },
@@ -85,8 +85,8 @@ describe('shopping', () => {
   it('walks to a shop, spends money, and returns home', () => {
     const map = new WorldMap(5, 5, 32)
     map.place(0, 0, TileType.House)
-    map.place(4, 0, TileType.Shop)
-    const shop = map.getTile(4, 0)
+    map.place(3, 0, TileType.Shop)
+    const shop = map.getTile(3, 0)
     if (shop) {
       shop.food = 8
     }
@@ -116,7 +116,7 @@ describe('shopping', () => {
     expect(resident.money).toBeLessThan(moneyBefore)
     expect(resident.hunger).toBeLessThan(70)
     expect(resident.state).toBe(ResidentState.Home)
-    expect(map.getTile(4, 0)?.xp).toBeGreaterThan(0)
+    expect(map.getTile(3, 0)?.xp).toBeGreaterThan(0)
     const home = map.tileCenter(0, 0)
     expect(resident.worldX).toBe(home.x)
     expect(resident.worldY).toBe(home.y)

@@ -47,6 +47,7 @@ describe('parseSnapshot', () => {
     expect(parsed?.year).toBe(1701)
     expect(parsed?.funds).toBe(870)
     expect(parsed?.residents[0]?.name).toBe('太助')
+    expect(parsed?.residents[0]?.gender).toBe('male')
     expect(parsed?.residents[0]?.hunger).toBe(44)
     expect(parsed?.residents[0]?.money).toBe(31)
     expect(parsed?.tiles[0]?.occupantIds).toEqual(['resident-1'])

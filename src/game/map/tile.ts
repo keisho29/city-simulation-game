@@ -15,16 +15,19 @@ export const TileType = {
   Rail: 'rail',
   Port: 'port',
   Airport: 'airport',
+  Extension: 'extension',
 } as const
 
 export type TileType = (typeof TileType)[keyof typeof TileType]
 
 export const Terrain = {
   Grass: 'grass',
+  Fertile: 'fertile',
   Water: 'water',
   River: 'river',
   Forest: 'forest',
   Rock: 'rock',
+  Hill: 'hill',
 } as const
 
 export type Terrain = (typeof Terrain)[keyof typeof Terrain]
@@ -39,6 +42,7 @@ export type Tile = {
   food: number
   wood: number
   goods: number
+  anchor?: { x: number; y: number }
 }
 
 export function isWorkplaceType(type: TileType): boolean {
@@ -70,7 +74,7 @@ export function isGrowableType(type: TileType): boolean {
 }
 
 export function isBuildableTerrain(terrain: Terrain): boolean {
-  return terrain === Terrain.Grass
+  return terrain === Terrain.Grass || terrain === Terrain.Fertile
 }
 
 export function isWaterTerrain(terrain: Terrain): boolean {
@@ -92,5 +96,6 @@ export function createTile(
     food: 0,
     wood: 0,
     goods: 0,
+    anchor: undefined,
   }
 }
